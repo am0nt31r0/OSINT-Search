@@ -14,9 +14,9 @@ USER_AGENT = 'urllib-example/0.1'
 def menu_options():
 	print("""osintS34rCh v1.0
 USAGES: 
-  ./osintS34rCh -e <target@email>
-  ./osintS34rCh -e <target@email> -pk <piplAPIkey>
-  ./osintS34rCh.py -p <telnumber> -sid <SID> -t <auth_token>
+  ./osintS34rCh -e <target@email>				# Searches for Data Breaches
+  ./osintS34rCh -e <target@email> -pk <piplAPIkey>		# Searches for People and Data Breaches
+  ./osintS34rCh.py -p <telnumber> -sid <SID> -t <auth_token>	# Searches for Country where the tel. number is
 
 OPTIONS:
   -e <email> # must be the first argument
