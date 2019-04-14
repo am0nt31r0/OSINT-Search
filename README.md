@@ -7,10 +7,10 @@ More functionality to be added later.
 
 # Requirements
 
-pip3 install -r requirements.txt
+- pip3 install -r requirements.txt
 
 # Usage
 
-./osintS34rCh -e email@test.com
-./osintS34rCh -e email@test.com -pk piplAPIkey
-./osintS34rCh.py -p telenomeNumber -sid account_sid -t auth_token
+- ./osintS34rCh -e email@test.com
+- ./osintS34rCh -e email@test.com -pk piplAPIkey
+- ./osintS34rCh.py -p telenomeNumber -sid account_sid -t auth_token
