@@ -6,7 +6,9 @@ More functionality to be added later.
 # Usage
 
 ./osintS34rCh -e <target@email> -pk <piplAPIkey>
+  
 OPTIONS:
+
   -e <email> # must be the first argument
   -pk <piplAPIkey> # must be the third argument (optional)
   -h or --help
