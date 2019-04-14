@@ -5,6 +5,7 @@ import urllib.request
 import urllib.error
 import json
 from validate_email import validate_email
+from opencnam import Phone
 
 
 PWNED_API = 'https://haveibeenpwned.com/api/v2/breachedaccount/'
@@ -12,10 +13,17 @@ USER_AGENT = 'urllib-example/0.1'
 
 def menu_options():
 	print("""osintS34rCh v1.0
-USAGE: ./osintS34rCh -e <target@email> -pk <piplAPIkey>
+USAGES: 
+  ./osintS34rCh -e <target@email>
+  ./osintS34rCh -e <target@email> -pk <piplAPIkey>
+  ./osintS34rCh.py -p <telnumber> -sid <SID> -t <auth_token>
+
 OPTIONS:
   -e <email> # must be the first argument
   -pk <piplAPIkey> # must be the third argument (optional)
+  -p <telnumber> # must be the first argument
+  -sid <SID> # must be the third argument
+  -t <auth_token> # must be the fifth argument
   -h or --help""")
 
 def menu_bad_execution():
@@ -23,9 +31,6 @@ def menu_bad_execution():
 	sys.exit()
 
 def piplSearch(email, key):
-
-	#key = PIPL_KEY
-	#email = PIPL_EMAIL
 
 	if 'email' in locals() and 'key' in locals():
 
@@ -244,8 +249,6 @@ def piplSearch(email, key):
 
 def haveibeenpwned(email):
 
-	#email = PWNED_EMAIL
-
 	req = urllib.request.Request(PWNED_API + email)
 	req.add_header('User-Agent', USER_AGENT)
 	r = urllib.request.urlopen(req).read().decode('utf-8')
@@ -275,6 +278,14 @@ def haveibeenpwned(email):
 			for k in range(len(j[i]['DataClasses'])):
 				print ("[*] Data breached: " + j[i]['DataClasses'][k])
 
+def callerID(telephone, sid, a_token):
+	
+	phone = Phone(telephone, account_sid=sid, auth_token=a_token)
+
+	print ("-> Caller ID Results")
+	print ("\n[*] Number: " + phone.number)
+	print ("[*] Country: " + phone.cnam)
+
 try:
 
 	if sys.argv[1] == '-h' or sys.argv[1] == '--help':
@@ -292,6 +303,10 @@ try:
 
 		else:
 			menu_bad_execution()
+
+	elif '-p' == sys.argv[1] and '-sid' == sys.argv[3] and '-t' == sys.argv[5] and len(sys.argv) == 7:
+		callerID(sys.argv[2], sys.argv[4], sys.argv[6])
+
 	else:
 		menu_bad_execution()
 
@@ -302,8 +317,7 @@ except urllib.error.URLError as e:
 	print (str(e))
 
 except urllib.error.HTTPError as e:
-	print (str(e))
+	print (str(e.code))
 
 except KeyboardInterrupt:
-	 sys.exit()
-
+	sys.exit()
