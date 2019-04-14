@@ -275,13 +275,6 @@ def haveibeenpwned(email):
 			for k in range(len(j[i]['DataClasses'])):
 				print ("[*] Data breached: " + j[i]['DataClasses'][k])
 
-	#req = urllib.request.Request('https://haveibeenpwned.com/api/pasteaccount/' + 'flaviaferreira95@hotmail.com')
-	#req.add_header('User-Agent', 'urllib-example/0.1')
-	#r = urllib.request.urlopen(req).read().decode('utf-8')
-	# if 404 print pastes were not found for the 'email' account
-	# https://haveibeenpwned.com/API/v2#PastesForAccount
-
-
 try:
 
 	if sys.argv[1] == '-h' or sys.argv[1] == '--help':
@@ -309,7 +302,7 @@ except urllib.error.URLError as e:
 	print (str(e))
 
 except urllib.error.HTTPError as e:
-	print (str(e.code))
+	print (str(e))
 
 except KeyboardInterrupt:
 	 sys.exit()
