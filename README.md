@@ -10,5 +10,7 @@ More functionality to be added later.
 OPTIONS:
 
   -e <email> # must be the first argument
+  
   -pk <piplAPIkey> # must be the third argument (optional)
+  
   -h or --help
