@@ -4,16 +4,18 @@ import sys
 import urllib.request
 import urllib.error
 import json
-from validate_email import validate_email
 from opencnam import Phone
 from google import google
-import re
+import validators
 from pyfiglet import Figlet
 
 
 PWNED_API = 'https://haveibeenpwned.com/api/v2/breachedaccount/'
+PWNED_PASTES_API = 'https://haveibeenpwned.com/api/v2/pasteaccount/'
 USER_AGENT = 'urllib-example/0.1'
 
+
+# Google Hacking queries - adapt as you want - https://www.exploit-db.com/google-hacking-database
 DIR_LIST = 'intitle:index.of'
 FIL = 'ext:xml | ext:conf | ext:cnf | ext:reg | ext:inf | ext:rdp | ext:cfg | ext:txt | ext:ora | ext:ini | ext:log | ext:sql | ext:config'
 DOC = 'ext:doc | ext:docx | ext:odt | ext:pdf | ext:rtf | ext:sxw | ext:psw | ext:ppt | ext:pptx | ext:pps | ext:csv | inurl:scanned & documents intitle:"index of" IT | intitle:"index of" inurl:documents backup'
@@ -27,8 +29,8 @@ def menu_options():
 	print("""osintS34rCh v1.0
 
 USAGES: 
-  ./osintS34rCh -e <target@email>				# Data Breaches
-  ./osintS34rCh -e <target@email> -pk <piplAPIkey>		# People and Data Breaches
+  ./osintS34rCh -e <target@email>				# Data Breaches and Credentials Pastes
+  ./osintS34rCh -e <target@email> -pk <piplAPIkey>		# People, Data Breaches and Credentials Pastes
   ./osintS34rCh.py -p <telnumber> -sid <SID> -t <auth_token>	# CallerID
   ./osintS34rCh.py -s <domain> -d <dork> -n <num_pages>		# Google Hacking
 
@@ -70,7 +72,7 @@ def piplSearch(email, key):
 
 	if 'email' in locals() and 'key' in locals():
 
-		data = urllib.request.urlopen("https://api.pipl.com/search/?email=" + email + "&no_sponsored=true&key=" + key).read().decode('utf-8')
+		data = urllib.request.urlopen('https://api.pipl.com/search/?email=' + email + '&no_sponsored=true&key=' + key).read().decode('utf-8')
 
 		j = json.loads(data)
 
@@ -78,7 +80,7 @@ def piplSearch(email, key):
 
 			print ("-> Pipl Results")
 
-			if 'premium' in j['available_data']:
+			if 'available_data' in j and 'premium' in j['available_data']:
 
 				if 'address' in j['query']['emails'][0]:
 					print ("\n[@] Target: " + str(j['query']['emails'][0]['address']))
@@ -180,7 +182,7 @@ def piplSearch(email, key):
 									if 'display' in j['person']['relationships'][i]['names'][k]:
 										print ("- Full Name: " + j['person']['relationships'][i]['names'][k]['display'] + "\n")
 				else:
-					print ("[!] No person found...")
+					print ("[!] No person found.")
 
 				if 'possible_persons' in j:
 					print ("\n[*] Possible persons found:")
@@ -314,6 +316,26 @@ def haveibeenpwned(email):
 			for k in range(len(j[i]['DataClasses'])):
 				print ("[*] Data breached: " + j[i]['DataClasses'][k])
 
+	print ("\n-> Haveibeenpwned Pastes Results")
+
+	req = urllib.request.Request(PWNED_PASTES_API + email)
+	req.add_header('User-Agent', 'urllib-example/0.1')
+	r = urllib.request.urlopen(req).read().decode('utf-8')
+
+	j = json.loads(r)
+
+	for i in range(len(j)):
+		if 'Id' in j[i]:
+			print ("\n[*] Data breach: " + str(j[i]['Id']))
+		if 'Source' in j[i]:
+			print ("[*] Source: " + str(j[i]['Source']))
+		if 'Title' in j[i]:
+			print ("[*] Title: " + str(j[i]['Title']))
+		if 'Date' in j[i]:
+			print ("[*] Date of the paste: " + str(j[i]['Date']))
+		if 'EmailCount' in j[i]:
+			print ("[*] Number of accounts: " + str(j[i]['EmailCount']))
+
 def callerID(telephone, sid, a_token):
 	
 	phone = Phone(telephone, account_sid=sid, auth_token=a_token)
@@ -323,7 +345,7 @@ def callerID(telephone, sid, a_token):
 	print ("[*] Country: " + phone.cnam)
 
 def googleHacking(domain, dork, numP):
-	
+
 	results = google.search('site:' + domain + ' ' + dork, numP)
 
 	print ("-> Google Hacking Resuts")
@@ -351,11 +373,11 @@ try:
 
 	elif '-e' == sys.argv[1]:
 
-		if validate_email(sys.argv[2]) and len(sys.argv) == 3:
+		if validators.email(sys.argv[2]) and len(sys.argv) == 3:
 			figlet_print()
 			haveibeenpwned(sys.argv[2])
 
-		elif validate_email(sys.argv[2]) and '-pk' == sys.argv[3] and len(sys.argv) == 5:
+		elif validators.email(sys.argv[2]) and '-pk' == sys.argv[3] and len(sys.argv) == 5:
 			figlet_print()
 			piplSearch(sys.argv[2], sys.argv[4])
 			haveibeenpwned(sys.argv[2])
@@ -367,9 +389,13 @@ try:
 		figlet_print()
 		callerID(sys.argv[2], sys.argv[4], sys.argv[6])
 
-	elif '-s' == sys.argv[1] and '-d' == sys.argv[3] and '-n' == sys.argv[5] and isinstance(int(sys.argv[6]), int) and len(sys.argv) == 7:
+	elif '-s' == sys.argv[1] and '-d' == sys.argv[3] and '-n' == sys.argv[5] and validators.domain(sys.argv[2]) and isinstance(int(sys.argv[6]), int) and len(sys.argv) == 7:
 
-		if sys.argv[4] == 'dir_list':
+		# pip3 install validators
+		if sys.argv[6] >= '10':
+			print ("[!] Too many pages to Google Hacking.")
+			sys.exit()
+		elif sys.argv[4] == 'dir_list':
 			figlet_print()
 			googleHacking(sys.argv[2], DIR_LIST, int(sys.argv[6]))
 		elif sys.argv[4] == 'files':
@@ -393,9 +419,6 @@ try:
 		elif sys.argv[4] == 'php':
 			figlet_print()
 			pgoogleHacking(sys.argv[2], PHP, int(sys.argv[6]))
-		elif sys.argv[6] >= '10':
-			print ("[!] Too many pages to Google Hacking.")
-			sys.exit()
 		else:
 			print ("[!] Bad dork.")
 			sys.exit()
