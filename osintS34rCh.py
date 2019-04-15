@@ -8,6 +8,7 @@ from validate_email import validate_email
 from opencnam import Phone
 from google import google
 import re
+from pyfiglet import Figlet
 
 
 PWNED_API = 'https://haveibeenpwned.com/api/v2/breachedaccount/'
@@ -18,12 +19,13 @@ FIL = 'ext:xml | ext:conf | ext:cnf | ext:reg | ext:inf | ext:rdp | ext:cfg | ex
 DOC = 'ext:doc | ext:docx | ext:odt | ext:pdf | ext:rtf | ext:sxw | ext:psw | ext:ppt | ext:pptx | ext:pps | ext:csv | inurl:scanned & documents intitle:"index of" IT | intitle:"index of" inurl:documents backup'
 DBS = 'ext:sql | ext:dbf | ext:mdb | inurl:login.htm "access" database | intext:database inurl:"laravel.log" ext:log'
 LOGIN = 'inurl:login | inurl:login/?next=/admin/ | intitle:admin intitle:login | inurl:admin intitle:login | inurl:login.php?referer=profile.php | inurl:.gov/wp-login.php | inurl:.edu/wp-login.php | inurl:.mil/wp-login.php | inurl:.us/wp-login.php'
-SQL = 'intitle:index of /.sql.gz intext:/backup/ | 	inurl:"?db_backup" | inurl:"dbbackup" -site:github.com "sql.gz" | "sql.tgz" | "sql.tar" | "sql.7z" | intitle:index of /.sql.gz intext:/backup/ | "index of" "database.sql.zip" | "Index of" "database.sql"'
+SQL = 'intitle:index of /.sql.gz intext:/backup/ | inurl:"?db_backup" | inurl:"dbbackup" -site:github.com "sql.gz" | "sql.tgz" | "sql.tar" | "sql.7z" | intitle:index of /.sql.gz intext:/backup/ | "index of" "database.sql.zip" | "Index of" "database.sql"'
 SENS = 'ext:log & intext:"admin" | intext:"root" | intext:"administrator" & intext:"password" | intext:"root" | intext:"admin" | intext:"administrator"'
 PHP = 'ext:php intitle:phpinfo "published by the PHP Group" | inurl:/signin.php?ret= | inurl:/php-errors.log filetype:log | inurl:/phpMyAdmin/setup/index.php?phpMyAdmin= | inurl:admin.php inurl:admin ext:php | inurl:login.php.bak | intext:define("AUTH_KEY", wp-config.php filetype:txt | inurl:"main.php?action=db"'
 
 def menu_options():
 	print("""osintS34rCh v1.0
+
 USAGES: 
   ./osintS34rCh -e <target@email>				# Data Breaches
   ./osintS34rCh -e <target@email> -pk <piplAPIkey>		# People and Data Breaches
@@ -41,25 +43,30 @@ OPTIONS:
   -n <num_pages>
   -h or --help
 
- DORKS:
-   dir_list
-   files
-   docs
-   db
-   login
-   sql
-   sensitive
-   php
+DORKS:
+  dir_list
+  files
+  docs
+  db
+  login
+  sql
+  sensitive
+  php
+
+MADE BY:
+  am0nt31r0
    """)
+
+def figlet_print():
+	f = Figlet(font='slant')
+	print (f.renderText('osintS34rCh'))
 
 def menu_bad_execution():
 	print ("osintS34rCh: bad execution")
+	print ("Try using: ./osintS34rCh -h")
 	sys.exit()
 
 def piplSearch(email, key):
-
-	#key = PIPL_KEY
-	#email = PIPL_EMAIL
 
 	if 'email' in locals() and 'key' in locals():
 
@@ -271,9 +278,9 @@ def piplSearch(email, key):
 			print (j['error'])
 			
 		else:
-			print("[!] Can't retrieve info from Pipl...")
+			print("[!] Can't retrieve info from Pipl.")
 	else:
-		print ("[!] Pipl API Key no inserted!")
+		print ("[!] Pipl API Key no inserted.")
 	return
 
 def haveibeenpwned(email):
@@ -345,9 +352,11 @@ try:
 	elif '-e' == sys.argv[1]:
 
 		if validate_email(sys.argv[2]) and len(sys.argv) == 3:
+			figlet_print()
 			haveibeenpwned(sys.argv[2])
 
 		elif validate_email(sys.argv[2]) and '-pk' == sys.argv[3] and len(sys.argv) == 5:
+			figlet_print()
 			piplSearch(sys.argv[2], sys.argv[4])
 			haveibeenpwned(sys.argv[2])
 
@@ -355,25 +364,34 @@ try:
 			menu_bad_execution()
 
 	elif '-p' == sys.argv[1] and '-sid' == sys.argv[3] and '-t' == sys.argv[5] and len(sys.argv) == 7:
+		figlet_print()
 		callerID(sys.argv[2], sys.argv[4], sys.argv[6])
 
 	elif '-s' == sys.argv[1] and '-d' == sys.argv[3] and '-n' == sys.argv[5] and isinstance(int(sys.argv[6]), int) and len(sys.argv) == 7:
 
 		if sys.argv[4] == 'dir_list':
+			figlet_print()
 			googleHacking(sys.argv[2], DIR_LIST, int(sys.argv[6]))
 		elif sys.argv[4] == 'files':
+			figlet_print()
 			googleHacking(sys.argv[2], FIL, int(sys.argv[6]))
 		elif sys.argv[4] == 'docs':
+			figlet_print()
 			googleHacking(sys.argv[2], DOC, int(sys.argv[6]))
 		elif sys.argv[4] == 'db':
+			figlet_print()
 			googleHacking(sys.argv[2], DBS, int(sys.argv[6]))
 		elif sys.argv[4] == 'login':
+			figlet_print()
 			googleHacking(sys.argv[2], LOGIN, int(sys.argv[6]))
 		elif sys.argv[4] == 'sql':
+			figlet_print()
 			googleHacking(sys.argv[2], SQL, int(sys.argv[6]))
 		elif sys.argv[4] == 'sensitive':
+			figlet_print()
 			googleHacking(sys.argv[2], SENS, int(sys.argv[6]))
 		elif sys.argv[4] == 'php':
+			figlet_print()
 			pgoogleHacking(sys.argv[2], PHP, int(sys.argv[6]))
 		elif sys.argv[6] >= '10':
 			print ("[!] Too many pages to Google Hacking.")
