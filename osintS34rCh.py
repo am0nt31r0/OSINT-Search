@@ -6,31 +6,60 @@ import urllib.error
 import json
 from validate_email import validate_email
 from opencnam import Phone
+from google import google
+import re
 
 
 PWNED_API = 'https://haveibeenpwned.com/api/v2/breachedaccount/'
 USER_AGENT = 'urllib-example/0.1'
 
+DIR_LIST = 'intitle:index.of'
+FIL = 'ext:xml | ext:conf | ext:cnf | ext:reg | ext:inf | ext:rdp | ext:cfg | ext:txt | ext:ora | ext:ini | ext:log | ext:sql | ext:config'
+DOC = 'ext:doc | ext:docx | ext:odt | ext:pdf | ext:rtf | ext:sxw | ext:psw | ext:ppt | ext:pptx | ext:pps | ext:csv | inurl:scanned & documents intitle:"index of" IT | intitle:"index of" inurl:documents backup'
+DBS = 'ext:sql | ext:dbf | ext:mdb | inurl:login.htm "access" database | intext:database inurl:"laravel.log" ext:log'
+LOGIN = 'inurl:login | inurl:login/?next=/admin/ | intitle:admin intitle:login | inurl:admin intitle:login | inurl:login.php?referer=profile.php | inurl:.gov/wp-login.php | inurl:.edu/wp-login.php | inurl:.mil/wp-login.php | inurl:.us/wp-login.php'
+SQL = 'intitle:index of /.sql.gz intext:/backup/ | 	inurl:"?db_backup" | inurl:"dbbackup" -site:github.com "sql.gz" | "sql.tgz" | "sql.tar" | "sql.7z" | intitle:index of /.sql.gz intext:/backup/ | "index of" "database.sql.zip" | "Index of" "database.sql"'
+SENS = 'ext:log & intext:"admin" | intext:"root" | intext:"administrator" & intext:"password" | intext:"root" | intext:"admin" | intext:"administrator"'
+PHP = 'ext:php intitle:phpinfo "published by the PHP Group" | inurl:/signin.php?ret= | inurl:/php-errors.log filetype:log | inurl:/phpMyAdmin/setup/index.php?phpMyAdmin= | inurl:admin.php inurl:admin ext:php | inurl:login.php.bak | intext:define("AUTH_KEY", wp-config.php filetype:txt | inurl:"main.php?action=db"'
+
 def menu_options():
 	print("""osintS34rCh v1.0
 USAGES: 
-  ./osintS34rCh -e <target@email>				# Searches for Data Breaches
-  ./osintS34rCh -e <target@email> -pk <piplAPIkey>		# Searches for People and Data Breaches
-  ./osintS34rCh.py -p <telnumber> -sid <SID> -t <auth_token>	# Searches for Country where the tel. number is
+  ./osintS34rCh -e <target@email>				# Data Breaches
+  ./osintS34rCh -e <target@email> -pk <piplAPIkey>		# People and Data Breaches
+  ./osintS34rCh.py -p <telnumber> -sid <SID> -t <auth_token>	# CallerID
+  ./osintS34rCh.py -s <domain> -d <dork> -n <num_pages>		# Google Hacking
 
 OPTIONS:
-  -e <email> # must be the first argument
-  -pk <piplAPIkey> # must be the third argument (optional)
-  -p <telnumber> # must be the first argument
-  -sid <SID> # must be the third argument
-  -t <auth_token> # must be the fifth argument
-  -h or --help""")
+  -e <email>
+  -pk <piplAPIkey>
+  -p <telnumber>
+  -sid <SID> 
+  -t <auth_token> 
+  -s <domain>
+  -d <dork>
+  -n <num_pages>
+  -h or --help
+
+ DORKS:
+   dir_list
+   files
+   docs
+   db
+   login
+   sql
+   sensitive
+   php
+   """)
 
 def menu_bad_execution():
 	print ("osintS34rCh: bad execution")
 	sys.exit()
 
 def piplSearch(email, key):
+
+	#key = PIPL_KEY
+	#email = PIPL_EMAIL
 
 	if 'email' in locals() and 'key' in locals():
 
@@ -286,6 +315,27 @@ def callerID(telephone, sid, a_token):
 	print ("\n[*] Number: " + phone.number)
 	print ("[*] Country: " + phone.cnam)
 
+def googleHacking(domain, dork, numP):
+	
+	results = google.search('site:' + domain + ' ' + dork, numP)
+
+	print ("-> Google Hacking Resuts")
+
+	if not len(results) == 0:
+		for i in range(len(results)):
+			print ("[*] Name: " + str(results[i].name))
+			print ("[*] Link: " + str(results[i].link))
+			print ("[*] URL: " + str(results[i].google_link))
+			print ("[*] Description: " + str(results[i].description))
+			print ("[*] Thumb: " + str(results[i].thumb))
+			print ("[*] Cached: " + str(results[i].cached))
+			print ("[*] Page: " + str(results[i].page))
+			print ("[*] Index: " + str(results[i].index))
+			print ("[*] Number of Results: " + str(results[i].number_of_results) + "\n")
+	else:
+		print ("[!] Nothing was retrieved.")
+
+
 try:
 
 	if sys.argv[1] == '-h' or sys.argv[1] == '--help':
@@ -306,6 +356,31 @@ try:
 
 	elif '-p' == sys.argv[1] and '-sid' == sys.argv[3] and '-t' == sys.argv[5] and len(sys.argv) == 7:
 		callerID(sys.argv[2], sys.argv[4], sys.argv[6])
+
+	elif '-s' == sys.argv[1] and '-d' == sys.argv[3] and '-n' == sys.argv[5] and isinstance(int(sys.argv[6]), int) and len(sys.argv) == 7:
+
+		if sys.argv[4] == 'dir_list':
+			googleHacking(sys.argv[2], DIR_LIST, int(sys.argv[6]))
+		elif sys.argv[4] == 'files':
+			googleHacking(sys.argv[2], FIL, int(sys.argv[6]))
+		elif sys.argv[4] == 'docs':
+			googleHacking(sys.argv[2], DOC, int(sys.argv[6]))
+		elif sys.argv[4] == 'db':
+			googleHacking(sys.argv[2], DBS, int(sys.argv[6]))
+		elif sys.argv[4] == 'login':
+			googleHacking(sys.argv[2], LOGIN, int(sys.argv[6]))
+		elif sys.argv[4] == 'sql':
+			googleHacking(sys.argv[2], SQL, int(sys.argv[6]))
+		elif sys.argv[4] == 'sensitive':
+			googleHacking(sys.argv[2], SENS, int(sys.argv[6]))
+		elif sys.argv[4] == 'php':
+			pgoogleHacking(sys.argv[2], PHP, int(sys.argv[6]))
+		elif sys.argv[6] >= '10':
+			print ("[!] Too many pages to Google Hacking.")
+			sys.exit()
+		else:
+			print ("[!] Bad dork.")
+			sys.exit()
 
 	else:
 		menu_bad_execution()
