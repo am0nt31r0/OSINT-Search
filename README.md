@@ -7,6 +7,7 @@ More functionality to be added later.
 
 # Requirements
 
+- Python3
 - pip3 install -r requirements.txt
 
 # Usage
