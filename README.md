@@ -9,6 +9,7 @@ More functionality to be added later.
 
 - Python3
 - pip3 install -r requirements.txt
+- pip3 install git+https://github.com/abenassi/Google-Search-API --upgrade
 
 # Usage
 
