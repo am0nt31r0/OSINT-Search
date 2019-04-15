@@ -14,4 +14,4 @@ More functionality to be added later.
 - ./osintS34rCh -e email@test.com
 - ./osintS34rCh -e email@test.com -pk piplAPIkey
 - ./osintS34rCh.py -p telenomeNumber -sid account_sid -t auth_token
-- ./osintS34rCh.py -s <domain> -d <dork> -n <num_pages>
+- ./osintS34rCh.py -s domain.com -d google_dork -n num_pages
