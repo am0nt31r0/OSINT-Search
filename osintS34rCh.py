@@ -4,10 +4,11 @@ import sys
 import urllib.request
 import urllib.error
 import json
+from pyfiglet import Figlet
 from opencnam import Phone
 from google import google
 import validators
-from pyfiglet import Figlet
+
 
 
 PWNED_API = 'https://haveibeenpwned.com/api/v2/breachedaccount/'
@@ -273,16 +274,10 @@ def piplSearch(email, key):
 											print ("  - Last Name: " + j['possible_persons'][i]['relationships'][k]['names'][l]['last'])
 										if 'display' in j['possible_persons'][i]['relationships'][k]['names'][l]:
 											print ("  - Full Name: " + j['possible_persons'][i]['relationships'][k]['names'][l]['display'] + "\n")
-		elif j['@http_status_code'] == 403:
-			print (j['error'])
-
-		elif j['http_status_code'] == 500:
-			print (j['error'])
-			
 		else:
 			print("[!] Can't retrieve info from Pipl.")
 	else:
-		print ("[!] Pipl API Key no inserted.")
+		print ("[!] Pipl API Key not inserted.")
 	return
 
 def haveibeenpwned(email):
@@ -391,8 +386,7 @@ try:
 
 	elif '-s' == sys.argv[1] and '-d' == sys.argv[3] and '-n' == sys.argv[5] and validators.domain(sys.argv[2]) and isinstance(int(sys.argv[6]), int) and len(sys.argv) == 7:
 
-		# pip3 install validators
-		if sys.argv[6] >= '10':
+		if sys.argv[6] > '10':
 			print ("[!] Too many pages to Google Hacking.")
 			sys.exit()
 		elif sys.argv[4] == 'dir_list':
@@ -430,10 +424,10 @@ except IndexError:
 	menu_bad_execution()
 
 except urllib.error.URLError as e:
-	print (str(e))
+	print (str(e) + '\n\nPossible reasons:\n[!] Target e-mail is wrong or doesn\n[!] There aren\'t any data pastes results for your target.\n[!] Your Pipl API key is wrong.\n[!] Your OpenCnam Account SID or Auth Token are wrong.')
 
 except urllib.error.HTTPError as e:
-	print (str(e.code))
+	print (tr(e) + '\n\nPossible reasons:\n[!] Bad Internet connection.\n[!] Resource doesn\'t exist')
 
 except KeyboardInterrupt:
 	sys.exit()
