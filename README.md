@@ -15,6 +15,7 @@ More functionalities to be added later.
 
 # Tested On
 Kubuntu 18.04.2 LTS
+Kali Linux 2019.1
 
 # Requirements
 
