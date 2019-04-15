@@ -11,7 +11,7 @@
 - Presents which country a phone number belongs to
 - Presents results of google hackings searches
 
-More functionality to be added later.
+More functionalities to be added later.
 
 # Tested On
 Kubuntu 18.04.2 LTS
