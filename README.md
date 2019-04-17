@@ -3,7 +3,7 @@
 - Create an account at https://pipl.com/api and get the API key.
 - Create an account at https://www.opencnam.com/ and get the Account SID and Auth Token.
 - Create an account at https://www.shodan.io/ and get the Shodan API key.
-- Create an account at https://whatcms.org/API?cmd=LoginForm and get the WhatCMS API key.
+- Create an account at https://whatcms.org/API and get the WhatCMS API key.
 
 # Functionality
 
