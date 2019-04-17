@@ -1,7 +1,8 @@
 # OSINT-Search Description
-- Script in Python that uses Pipl, Haveibeenpwned, Opencnam and Google APIs to do OSINT searches using an email address, phone number or domain.
+- Script in Python that uses Pipl, Haveibeenpwned, Opencnam and Google APIs to do OSINT searches using an email address, phone number, domain or IP address.
 - Create an account at https://pipl.com/api and get the API key.
 - Create an account at https://www.opencnam.com/ and get the Account SID and Auth Token.
+- Create an account at https://www.shodan.io/ and get the Shodan API key.
 
 # Functionality
 
@@ -10,6 +11,7 @@
 - Presents information related to pastes of data breaches made public
 - Presents which country a phone number belongs to
 - Presents results of google hackings searches
+- Presents results related to a domain or an IP address
 
 More functionalities to be added later.
 
@@ -29,3 +31,4 @@ More functionalities to be added later.
 - ./osintS34rCh -e email@test.com -pk piplAPIkey
 - ./osintS34rCh.py -p telenomeNumber -sid account_sid -t auth_token
 - ./osintS34rCh.py -s domain.com -d google_dork -n num_pages
+- ./osintS34rCh.py -t target -sk shodanAPIkey
