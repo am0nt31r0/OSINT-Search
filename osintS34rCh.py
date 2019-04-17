@@ -7,6 +7,7 @@ import json
 from pyfiglet import Figlet
 from opencnam import Phone
 from google import google
+import shodan
 import validators
 
 
@@ -34,6 +35,7 @@ USAGES:
   ./osintS34rCh -e <target@email> -pk <piplAPIkey>		# People, Data Breaches and Credentials Pastes
   ./osintS34rCh.py -p <telnumber> -sid <SID> -t <auth_token>	# CallerID
   ./osintS34rCh.py -s <domain> -d <dork> -n <num_pages>		# Google Hacking
+  ./osintS34rCh.py -t <target> -sk <shodanAPIkey>		# Shodan Recon
 
 OPTIONS:
   -e <email>
@@ -44,6 +46,8 @@ OPTIONS:
   -s <domain>
   -d <dork>
   -n <num_pages>
+  -sk <shodanAPIkey>
+  -t <target IP or Domain>
   -h or --help
 
 DORKS:
@@ -78,8 +82,6 @@ def piplSearch(email, key):
 		j = json.loads(data)
 
 		if j['@http_status_code'] == 200:
-
-			print ("-> Pipl Results")
 
 			if 'available_data' in j and 'premium' in j['available_data']:
 
@@ -288,8 +290,6 @@ def haveibeenpwned(email):
 
 	j = json.loads(r)
 
-	print ("\n-> Haveibeenpwned Results")
-
 	print ("\n[@] Target: " + email)
 
 	for i in range(len(j)):
@@ -359,6 +359,58 @@ def googleHacking(domain, dork, numP):
 	else:
 		print ("[!] Nothing was retrieved.")
 
+def shodan_search(target, api_key):
+	
+	api = shodan.Shodan(api_key)
+
+	print ('\n[@] Target: ' + target + '\n')
+
+	if validators.ip_address.ipv4(target):
+
+		host = api.host(target)
+		
+		print ("""[*] City: {}
+[*] Country: {}
+[*] Postal Code: {}
+[*] Longitude: {}
+[*] Latitude: {}
+[*] Operation System: {}
+[*] Organization: {}
+[*] ISP: {}""".format(host['city'], host['country_name'], host['postal_code'], host.get('longitude', 'n/a'), host.get('latitude', 'n/a'), host['os'], host['org'], host['isp']))
+
+		if len(host['ports']) >= 1:
+			for port in host['ports']:
+				print ('[*] Port: ' + str(port))
+
+		if len(host['hostnames']) >= 1:
+			for hostname in host['hostnames']:
+				print ('[*] Hostname: ' + str(hostname))
+
+	elif validators.domain(target):
+		
+		host = api.search(target)
+
+		if len(host['matches']) > 0:
+			for service in host['matches']:
+				print ("""[*] IP: {}
+[*] City: {}
+[*] Country: {}
+[*] Postal Code: {}
+[*] Longitude: {}
+[*] Latitude: {}
+[*] Operation System: {}
+[*] Organization: {}
+[*] ISP: {}
+[*] Port: {}""".format(service['ip_str'], service['location'].get('city', 'n/a'), service['location'].get('country_name', 'n/a'), service['location'].get('postal_code', 'n/a'), service['location'].get('longitude', 'n/a'), service['location'].get('latitude', 'n/a'), service['os'], service['org'], service.get('isp', 'n/a'), service.get('isp', 'n/a'),service.get('port')))
+				for hostname in service['hostnames']:
+					print ("[*] Hostname: " + hostname + '\n')
+
+		else:
+			print ('[!] Shodan: information about ' + target + ' was not found.')
+
+	else:
+		print ('[!] Shodan: bad input. Possible reasons:')
+		print ('[!] Your target IP was mistyped.\n[!] Your target domain was mistyped.')
 
 try:
 
@@ -370,11 +422,14 @@ try:
 
 		if validators.email(sys.argv[2]) and len(sys.argv) == 3:
 			figlet_print()
+			print ("\n-> Haveibeenpwned Results")
 			haveibeenpwned(sys.argv[2])
 
 		elif validators.email(sys.argv[2]) and '-pk' == sys.argv[3] and len(sys.argv) == 5:
 			figlet_print()
+			print ("-> Pipl Results")
 			piplSearch(sys.argv[2], sys.argv[4])
+			print ("\n-> Haveibeenpwned Results")
 			haveibeenpwned(sys.argv[2])
 
 		else:
@@ -386,7 +441,7 @@ try:
 
 	elif '-s' == sys.argv[1] and '-d' == sys.argv[3] and '-n' == sys.argv[5] and validators.domain(sys.argv[2]) and isinstance(int(sys.argv[6]), int) and len(sys.argv) == 7:
 
-		if sys.argv[6] > '10':
+		if sys.argv[6] >= '10':
 			print ("[!] Too many pages to Google Hacking.")
 			sys.exit()
 		elif sys.argv[4] == 'dir_list':
@@ -416,7 +471,10 @@ try:
 		else:
 			print ("[!] Bad dork.")
 			sys.exit()
-
+	elif '-t' == sys.argv[1] and '-sk' == sys.argv[3] and len(sys.argv) == 5:
+		figlet_print()
+		print ("\n-> Shodan Results")
+		shodan_search(sys.argv[2], sys.argv[4])
 	else:
 		menu_bad_execution()
 
@@ -424,10 +482,18 @@ except IndexError:
 	menu_bad_execution()
 
 except urllib.error.URLError as e:
-	print (str(e) + '\n\nPossible reasons:\n[!] Target e-mail is wrong or doesn\n[!] There aren\'t any data pastes results for your target.\n[!] Your Pipl API key is wrong.\n[!] Your OpenCnam Account SID or Auth Token are wrong.')
+	if e.code == 404:
+		print ('\n[!] Data not found. Possible reasons:')
+		print ('[!] Target e-mail is wrong or doesn\'t exist\n[!] There aren\'t any data breaches for your target.\n[!] There aren\'t any data pastes results for your target.')
+	elif e.code == 403:
+		print ('\n[!] Bad request. Possible reasons:')
+		print ('[!] Your Pipl API key is wrong.\n[!] Your OpenCnam Account SID or Auth Token are wrong.')
 
 except urllib.error.HTTPError as e:
 	print (tr(e) + '\n\nPossible reasons:\n[!] Bad Internet connection.\n[!] Resource doesn\'t exist')
+
+except shodan.APIError as e:
+	print ('[!] Shodan: ' + str(e))
 
 except KeyboardInterrupt:
 	sys.exit()
