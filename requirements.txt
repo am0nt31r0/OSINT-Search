@@ -3,3 +3,4 @@ opencnam
 git+https://github.com/abenassi/Google-Search-API
 pyfiglet
 validators
+shodan
