@@ -4,17 +4,18 @@ import sys
 import urllib.request
 import urllib.error
 import json
+import validators
 from pyfiglet import Figlet
 from opencnam import Phone
 from google import google
 import shodan
-import validators
-
+from dnsdumpster.DNSDumpsterAPI import DNSDumpsterAPI
 
 
 PWNED_API = 'https://haveibeenpwned.com/api/v2/breachedaccount/'
 PWNED_PASTES_API = 'https://haveibeenpwned.com/api/v2/pasteaccount/'
 USER_AGENT = 'urllib-example/0.1'
+WHATCMS_API = 'https://whatcms.org/APIEndpoint/Detect?key='
 
 
 # Google Hacking queries - adapt as you want - https://www.exploit-db.com/google-hacking-database
@@ -33,21 +34,25 @@ def menu_options():
 USAGES: 
   ./osintS34rCh -e <target@email>				# Data Breaches and Credentials Pastes
   ./osintS34rCh -e <target@email> -pk <piplAPIkey>		# People, Data Breaches and Credentials Pastes
-  ./osintS34rCh.py -p <telnumber> -sid <SID> -t <auth_token>	# CallerID
+  ./osintS34rCh.py -p <telnumber> -sid <SID> -at <auth_token>	# CallerID
   ./osintS34rCh.py -s <domain> -d <dork> -n <num_pages>		# Google Hacking
   ./osintS34rCh.py -t <target> -sk <shodanAPIkey>		# Shodan Recon
+  ./osintS34rCh.py -t <target> -wk <whatCMSAPIkey>		# WhatCMS Check
+  ./osintS34rCh.py -t <target> --dns 				# DNSDumpster
 
 OPTIONS:
   -e <email>
   -pk <piplAPIkey>
   -p <telnumber>
   -sid <SID> 
-  -t <auth_token> 
+  -at <auth_token> 
   -s <domain>
   -d <dork>
   -n <num_pages>
   -sk <shodanAPIkey>
-  -t <target IP or Domain>
+  -t <target IP, Domain or URL>
+  -wk <whatCMSAPIkey>
+  --dns
   -h or --help
 
 DORKS:
@@ -61,8 +66,7 @@ DORKS:
   php
 
 MADE BY:
-  am0nt31r0
-   """)
+  am0nt31r0""")
 
 def figlet_print():
 	f = Figlet(font='slant')
@@ -360,7 +364,7 @@ def googleHacking(domain, dork, numP):
 		print ("[!] Nothing was retrieved.")
 
 def shodan_search(target, api_key):
-	
+	# pip3 install shodan
 	api = shodan.Shodan(api_key)
 
 	print ('\n[@] Target: ' + target + '\n')
@@ -412,6 +416,86 @@ def shodan_search(target, api_key):
 		print ('[!] Shodan: bad input. Possible reasons:')
 		print ('[!] Your target IP was mistyped.\n[!] Your target domain was mistyped.')
 
+def whatCMS(target, api_key):
+
+	data = urllib.request.urlopen(WHATCMS_API + api_key + '&url=' + target)
+	j = json.load(data)
+
+	if 'code' in j['result']:
+		if j['result']['code'] == 200:
+			print ("""[*] CMS: {} {}
+[*] Accuracy: {}""".format(j['result'].get('name', 'n/a'), j['result'].get('version', 'n/a'), j['result'].get('confidence', 'n/a')))
+		if j['result']['code'] == 0:
+			print ('[!] whatCMS: ' + j['result']['msg'])
+		if j['result']['code'] == 100:
+			print ('[!] whatCMS: ' + j['result']['msg'])
+		if j['result']['code'] == 101:
+			print ('[!] whatCMS: ' + j['result']['msg'])
+		if j['result']['code'] == 110:
+			print ('[!] whatCMS: ' + j['result']['msg'])
+		if j['result']['code'] == 111:
+			print ('[!] whatCMS: ' + j['result']['msg'])
+		if j['result']['code'] == 113:
+			print ('[!] whatCMS: ' + j['result']['msg'])
+		if j['result']['code'] == 120:
+			print ('[!] whatCMS: ' + j['result']['msg'])
+		if j['result']['code'] == 121:
+			print ('[!] whatCMS: ' + j['result']['msg'])
+		if j['result']['code'] == 123:
+			print ('[!] whatCMS: ' + j['result']['msg'])
+		if j['result']['code'] == 201:
+			print ('[!] whatCMS: ' + j['result']['msg'])
+		if j['result']['code'] == 202:
+			print ('[!] whatCMS: ' + j['result']['msg'])
+	else:
+		print ("[!] Error")
+
+def dnsDump(target_domain):
+	
+	result = DNSDumpsterAPI().search(target_domain)
+
+	if len(result) > 0:
+
+		print ('[@] Target: ' + result['domain'] + '\n')
+
+		print ('[*] DNS Servers')
+		for record in result['dns_records']['dns']:
+			print("""- Domain: {}
+- IP: {}
+- Reverse DNS: {}
+- AS: {}
+- ISP: {}
+- Country: {}
+- Header: {}
+""".format(record['domain'], record['ip'], record['reverse_dns'], record['as'], record['provider'], record['country'], record['header']))
+
+		print ('[*] MX Records')
+		for record in result['dns_records']['mx']:
+			print("""- Domain: {}
+- IP: {}
+- Reverse DNS: {}
+- AS: {}
+- ISP: {}
+- Country: {}
+- Header: {}
+""".format(record['domain'], record['ip'], record['reverse_dns'], record['as'], record['provider'], record['country'], record['header']))
+
+		print ('[*] TXT Records')
+		for record in result['dns_records']['txt']:
+			print ('- ' + record)
+
+		print ('\n[*] Host Records')
+		for record in result['dns_records']['host']:
+			print("""- Domain: {}
+- IP: {}
+- Reverse DNS: {}
+- AS: {}
+- ISP: {}
+- Country: {}
+- Header: {}
+""".format(record['domain'], record['ip'], record['reverse_dns'], record['as'], record['provider'], record['country'], record['header']))
+
+
 try:
 
 	if sys.argv[1] == '-h' or sys.argv[1] == '--help':
@@ -435,7 +519,7 @@ try:
 		else:
 			menu_bad_execution()
 
-	elif '-p' == sys.argv[1] and '-sid' == sys.argv[3] and '-t' == sys.argv[5] and len(sys.argv) == 7:
+	elif '-p' == sys.argv[1] and '-sid' == sys.argv[3] and '-at' == sys.argv[5] and len(sys.argv) == 7:
 		figlet_print()
 		callerID(sys.argv[2], sys.argv[4], sys.argv[6])
 
@@ -475,6 +559,19 @@ try:
 		figlet_print()
 		print ("\n-> Shodan Results")
 		shodan_search(sys.argv[2], sys.argv[4])
+	
+	elif '-t' == sys.argv[1] and '-wk' == sys.argv[3] and len(sys.argv) == 5:
+		if validators.url('http://' + sys.argv[2]):
+			figlet_print()
+			print ('\n-> WhatCMS Results\n')
+			whatCMS(sys.argv[2], sys.argv[4])
+		else:
+			print ('[!] Bad URL. Possible reasons:\n[!] The target URL is mistyped or doesn\'t exist.\n[!] The target URL contains the prefix \'https://\' or \'http://\'')
+	elif '-t' == sys.argv[1] and '--dns' == sys.argv[3] and validators.domain(sys.argv[2]) and len(sys.argv) == 4:
+		figlet_print()
+		print ('\n-> DNSdumpster Results\n')
+		dnsDump(sys.argv[2])
+
 	else:
 		menu_bad_execution()
 
@@ -484,10 +581,10 @@ except IndexError:
 except urllib.error.URLError as e:
 	if e.code == 404:
 		print ('\n[!] Data not found. Possible reasons:')
-		print ('[!] Target e-mail is wrong or doesn\'t exist\n[!] There aren\'t any data breaches for your target.\n[!] There aren\'t any data pastes results for your target.')
+		print ('[!] Target e-mail is mistyped or doesn\'t exist.\n[!] There aren\'t any data breaches for your target.\n[!] There aren\'t any data pastes results for your target.')
 	elif e.code == 403:
 		print ('\n[!] Bad request. Possible reasons:')
-		print ('[!] Your Pipl API key is wrong.\n[!] Your OpenCnam Account SID or Auth Token are wrong.')
+		print ('[!] Your Pipl API key is mistyped.\n[!] Your OpenCnam Account SID or Auth Token are mistyped.')
 
 except urllib.error.HTTPError as e:
 	print (tr(e) + '\n\nPossible reasons:\n[!] Bad Internet connection.\n[!] Resource doesn\'t exist')
