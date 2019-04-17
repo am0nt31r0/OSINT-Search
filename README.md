@@ -14,6 +14,7 @@
 - Presents results of google hackings searches
 - Presents results related to a domain or an IP address
 - Presents CMS for a certain URL
+- Presents DNS Records information for a certain domain
 
 More functionalities to be added later.
 
@@ -26,12 +27,8 @@ More functionalities to be added later.
 - Python3 - https://docs.python-guide.org/starting/install3/linux/#install3-linux
 - pip3 install -r requirements.txt
 - pip3 install git+https://github.com/abenassi/Google-Search-API --upgrade
+- pip3 install https://github.com/PaulSec/API-dnsdumpster.com/archive/master.zip --user
 
 # Usage
 
-- ./osintS34rCh -e email@test.com
-- ./osintS34rCh -e email@test.com -pk piplAPIkey
-- ./osintS34rCh.py -p telenomeNumber -sid account_sid -at auth_token
-- ./osintS34rCh.py -s domain.com -d google_dork -n num_pages
-- ./osintS34rCh.py -t target -sk shodanAPIkey
-- ./osintS34rCh.py -t target -wk whatCMSAPIkey
+- ./osintS34rCh --help
