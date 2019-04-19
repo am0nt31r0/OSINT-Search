@@ -1,10 +1,13 @@
 #!/usr/bin/python3
 
 import sys
+import os
+import json
+import configparser
 import urllib.request
 import urllib.error
-import json
 import validators
+import phonenumbers
 from pyfiglet import Figlet
 from opencnam import Phone
 from google import google
@@ -16,7 +19,7 @@ PWNED_API = 'https://haveibeenpwned.com/api/v2/breachedaccount/'
 PWNED_PASTES_API = 'https://haveibeenpwned.com/api/v2/pasteaccount/'
 USER_AGENT = 'urllib-example/0.1'
 WHATCMS_API = 'https://whatcms.org/APIEndpoint/Detect?key='
-
+CRT_URL = 'https://crt.sh/?q=%25'
 
 # Google Hacking queries - adapt as you want - https://www.exploit-db.com/google-hacking-database
 DIR_LIST = 'intitle:index.of'
@@ -32,26 +35,26 @@ def menu_options():
 	print("""osintS34rCh v1.0
 
 USAGES: 
-  ./osintS34rCh -e <target@email>				# Data Breaches and Credentials Pastes
-  ./osintS34rCh -e <target@email> -pk <piplAPIkey>		# People, Data Breaches and Credentials Pastes
-  ./osintS34rCh.py -p <telnumber> -sid <SID> -at <auth_token>	# CallerID
-  ./osintS34rCh.py -s <domain> -d <dork> -n <num_pages>		# Google Hacking
-  ./osintS34rCh.py -t <target> -sk <shodanAPIkey>		# Shodan Recon
-  ./osintS34rCh.py -t <target> -wk <whatCMSAPIkey>		# WhatCMS Check
-  ./osintS34rCh.py -t <target> --dns 				# DNSDumpster
+  ./osintS34rCh -e <target@email>				Data Breaches and Credentials Pastes
+  ./osintS34rCh -e <target@email> --person 			People, Data Breaches and Credentials Pastes
+  ./osintS34rCh.py -p <phonenumber> --callerID			CallerID
+  ./osintS34rCh.py -s <domain> -d <dork> -n <num_pages>		Google Hacking
+  ./osintS34rCh.py -t <IP or domain> --shodan			Shodan Recon
+  ./osintS34rCh.py -u <url> --cms				WhatCMS Check
+  ./osintS34rCh.py -t <domain> --dns 				DNSDumpster
+  ./osintS34rCh.py -u <url> --facebook 				Facebook
+  ./osintS34rCh.py -t <domain> --crt 				crt.sh
 
 OPTIONS:
   -e <email>
-  -pk <piplAPIkey>
-  -p <telnumber>
-  -sid <SID> 
-  -at <auth_token> 
+  --person 
+  -p <phone>
   -s <domain>
   -d <dork>
   -n <num_pages>
-  -sk <shodanAPIkey>
-  -t <target IP, Domain or URL>
-  -wk <whatCMSAPIkey>
+  --shodan
+  -t <target IP or Domain>
+  --cms
   --dns
   -h or --help
 
@@ -65,8 +68,54 @@ DORKS:
   sensitive
   php
 
-MADE BY:
-  am0nt31r0""")
+CONFIG_FILE:
+  /yourdirectory/osintSearch.config.ini""")
+
+def face(facebookURL):
+
+	#facebookURL = 'https://www.facebook.com/Cristiano'
+	data = urllib.request.urlopen(facebookURL).read().decode('utf-8')
+	
+	if data.count('entity_id') == 1:
+		eindex = int(data.index('entity_id')) + 12
+		facebook_id = ''
+		for i in data[eindex:]:
+			if i == '"':
+				break
+			else:
+				facebook_id = facebook_id + i			
+		print ("[*] Facebook ID: " + facebook_id)
+		print ("[*] Login to facebook and open: " + 'https://www.facebook.com/search/' + facebook_id + '/photos-of')
+	else:
+		print ('[!] Facebook ID not found.')
+
+def crt(domain):
+	
+	req = urllib.request.Request(CRT_URL + domain + '&output=json')
+	r = urllib.request.urlopen(req).read().decode('utf-8')
+
+	j = json.loads(r)
+
+	print ('[@] Target: ' + domain + '\n')
+
+	if len(j) > 0:
+
+		print ('[-] URL: ' + CRT_URL + domain)
+
+		for cert in j:
+			print ("""
+[*] Issuer CA ID: {}
+[*] Issuer Name: {}
+[*] Name: {}
+[*] crt.sh ID: {}
+[*] Logged At: {}
+[*] Not before: {}
+[*] Not after: {}
+[*] URL: {}""".format(cert.get('issuer_ca_id'), cert.get('issuer_name'), cert.get('name_value'), cert.get('min_cert_id'), cert.get('min_entry_timestamp'), cert.get('not_before'), cert.get('not_after'), 'https://crt.sh/?id=' + str(cert['min_cert_id'])))
+
+	else:
+		print ("[!] crt.sh info not found.")
+		sys.exit()
 
 def figlet_print():
 	f = Figlet(font='slant')
@@ -76,6 +125,63 @@ def menu_bad_execution():
 	print ("osintS34rCh: bad execution")
 	print ("Try using: ./osintS34rCh -h")
 	sys.exit()
+
+def apiFile():
+
+	global pipl_key
+	global caller_sid
+	global caller_auth
+	global shodan_key
+	global cms_key
+
+	pwd = os.path.dirname(sys.argv[0])
+	filename = pwd + '/osintSearch.config.ini'
+
+	config = configparser.ConfigParser()
+
+	if not os.path.isfile(filename):
+
+		figlet_print()
+
+		print ("[-] The following procedure is necessary in order to save your API keys...")
+		print ("[-] Hit enter if you don't have the keys.\n[-] The data will be written into a file called [" + filename + "] that can be edited by you after.\n")
+
+		p_api_key = input("[?] What is your PIPL API key?\n")
+		cnam_sid = input("[?] What is your CNAM SID?\n")
+		cnam_at = input("[?] What is your CNAM AUTH_TOKEN?\n")
+		s_api_key = input("[?] What is your Shodan API key?\n")
+		w_api_key = input("[?] What is your WhatCMS API key?\n")
+		
+		config['PIPL'] = {}
+		config['PIPL']['API_KEY'] = p_api_key
+		config['CNAM'] = {'SID': cnam_sid, 'AUTH_TOKEN': cnam_at}
+		config['SHODAN'] = {}
+		config['SHODAN']['API_KEY'] = s_api_key
+		config['WHATCMS'] = {}
+		config['WHATCMS']['API_KEY'] = w_api_key
+
+		with open(filename, 'w') as configfile:
+			config.write(configfile)
+
+		print ("\n[-] The data was written into the file - don't forget you can edit it later if you typed any of the fields wrong.\n[-] Please start the script again.")
+
+		return False
+
+	elif os.path.isfile(filename):
+
+		config.read(filename)
+
+		pipl_key = config['PIPL']['API_KEY']
+		caller_sid = config['CNAM']['SID']
+		caller_auth = config['CNAM']['AUTH_TOKEN']
+		shodan_key = config['SHODAN']['API_KEY']
+		cms_key = config['WHATCMS']['API_KEY']
+		
+		return True
+
+	else:
+		print ("[!] Something went wrong.")
+		return False
 
 def piplSearch(email, key):
 
@@ -287,6 +393,8 @@ def piplSearch(email, key):
 	return
 
 def haveibeenpwned(email):
+	
+	print ("\n-> Data Breaches Results")
 
 	req = urllib.request.Request(PWNED_API + email)
 	req.add_header('User-Agent', USER_AGENT)
@@ -315,7 +423,7 @@ def haveibeenpwned(email):
 			for k in range(len(j[i]['DataClasses'])):
 				print ("[*] Data breached: " + j[i]['DataClasses'][k])
 
-	print ("\n-> Haveibeenpwned Pastes Results")
+	print ("\n-> Data Pastes Results")
 
 	req = urllib.request.Request(PWNED_PASTES_API + email)
 	req.add_header('User-Agent', 'urllib-example/0.1')
@@ -364,7 +472,7 @@ def googleHacking(domain, dork, numP):
 		print ("[!] Nothing was retrieved.")
 
 def shodan_search(target, api_key):
-	# pip3 install shodan
+	
 	api = shodan.Shodan(api_key)
 
 	print ('\n[@] Target: ' + target + '\n')
@@ -373,7 +481,8 @@ def shodan_search(target, api_key):
 
 		host = api.host(target)
 		
-		print ("""[*] City: {}
+		print ("""
+[*] City: {}
 [*] Country: {}
 [*] Postal Code: {}
 [*] Longitude: {}
@@ -396,7 +505,8 @@ def shodan_search(target, api_key):
 
 		if len(host['matches']) > 0:
 			for service in host['matches']:
-				print ("""[*] IP: {}
+				print ("""
+[*] IP: {}
 [*] City: {}
 [*] Country: {}
 [*] Postal Code: {}
@@ -498,90 +608,130 @@ def dnsDump(target_domain):
 
 try:
 
-	if sys.argv[1] == '-h' or sys.argv[1] == '--help':
-		menu_options()
-		sys.exit()
+	pipl_key = ''
+	caller_sid = ''
+	caller_auth = ''
+	shodan_key = ''
+	cms_key = ''
+	
+	if apiFile():
 
-	elif '-e' == sys.argv[1]:
+		if sys.argv[1] == '-h' or sys.argv[1] == '--help':
+			menu_options()
+			sys.exit()
 
-		if validators.email(sys.argv[2]) and len(sys.argv) == 3:
+		elif sys.argv[1] == '-e':
+
+			if validators.email(sys.argv[2]) and len(sys.argv) == 3:
+				figlet_print()
+				haveibeenpwned(sys.argv[2])
+
+			elif validators.email(sys.argv[2]) and '--person' == sys.argv[3] and len(sys.argv) == 4:
+				if pipl_key == '':
+					print ("[*] Pipl API key don't exist.")
+					sys.exit()
+				else:
+					figlet_print()
+					print ("-> Pipl Results")
+					piplSearch(sys.argv[2], pipl_key)
+					haveibeenpwned(sys.argv[2])
+
+			else:
+				menu_bad_execution()
+				
+		elif sys.argv[1] == '-p' and sys.argv[3] == '--callerID' and len(sys.argv) == 4:
+			
 			figlet_print()
-			print ("\n-> Haveibeenpwned Results")
-			haveibeenpwned(sys.argv[2])
 
-		elif validators.email(sys.argv[2]) and '-pk' == sys.argv[3] and len(sys.argv) == 5:
+			if phonenumbers.is_valid_number(phonenumbers.parse(sys.argv[2], None)):
+				if caller_sid == '' or caller_auth == '':
+					print ("[!] CallerID or Caller Authenticaton Token doesn't exist.")
+
+				else:
+					callerID(sys.argv[2], caller_sid, caller_auth)
+			else: 
+				print ("[*] Target phone number is incorrect.")
+				sys.exit()
+
+		elif sys.argv[1] == '-s' and sys.argv[3] == '-d' and sys.argv[5] == '-n' and validators.domain(sys.argv[2]) and isinstance(int(sys.argv[6]), int) and len(sys.argv) == 7:
+
+			if sys.argv[6] > '10':
+				print ("[!] Too many pages to Google Hacking.")
+				sys.exit()
+			elif sys.argv[4] == 'dir_list':
+				figlet_print()
+				googleHacking(sys.argv[2], DIR_LIST, int(sys.argv[6]))
+			elif sys.argv[4] == 'files':
+				figlet_print()
+				googleHacking(sys.argv[2], FIL, int(sys.argv[6]))
+			elif sys.argv[4] == 'docs':
+				figlet_print()
+				googleHacking(sys.argv[2], DOC, int(sys.argv[6]))
+			elif sys.argv[4] == 'db':
+				figlet_print()
+				googleHacking(sys.argv[2], DBS, int(sys.argv[6]))
+			elif sys.argv[4] == 'login':
+				figlet_print()
+				googleHacking(sys.argv[2], LOGIN, int(sys.argv[6]))
+			elif sys.argv[4] == 'sql':
+				figlet_print()
+				googleHacking(sys.argv[2], SQL, int(sys.argv[6]))
+			elif sys.argv[4] == 'sensitive':
+				figlet_print()
+				googleHacking(sys.argv[2], SENS, int(sys.argv[6]))
+			elif sys.argv[4] == 'php':
+				figlet_print()
+				pgoogleHacking(sys.argv[2], PHP, int(sys.argv[6]))
+			else:
+				print ("[!] Bad dork.")
+				sys.exit()
+		elif sys.argv[1] == '-t' and sys.argv[3] == '--shodan' and len(sys.argv) == 4:
 			figlet_print()
-			print ("-> Pipl Results")
-			piplSearch(sys.argv[2], sys.argv[4])
-			print ("\n-> Haveibeenpwned Results")
-			haveibeenpwned(sys.argv[2])
+			print ("\n-> Shodan Results")
+			shodan_search(sys.argv[2], shodan_key)
+		
+		elif sys.argv[1] == '-u' and sys.argv[3] == '--cms' and len(sys.argv) == 4:
+			if cms_key == '':
+				print ("[*] WhatCMS API key don't exist.")
+				sys.exit()
 
+			elif validators.url('http://' + sys.argv[2]):
+				figlet_print()
+				print ('\n-> WhatCMS Results\n')
+				whatCMS(sys.argv[2], cms_key)
+			else:
+				print ('[!] Bad URL. Possible reasons:\n[!] The target URL is mistyped or doesn\'t exist.\n[!] The target URL contains the prefix \'https://\' or \'http://\' - Remove it.')
+
+		elif sys.argv[1] == '-t' and validators.domain(sys.argv[2]) and sys.argv[3] == '--dns' and len(sys.argv) == 4:
+			figlet_print()
+			print ('\n-> DNSdumpster Results\n')
+			dnsDump(sys.argv[2])
+
+		elif sys.argv[1] == '-u' and sys.argv[3] == '--facebook':
+			if validators.url(sys.argv[2]):
+				figlet_print()
+				print ('\n-> Facebook Results\n')
+				face(sys.argv[2])
+			else:
+				print ('[!] Bad URL. Possible reasons:\n[!] The target URL is mistyped or doesn\'t exist.\n[!] The target URL don\'t contain the prefix \'https://\' or \'http://\' - Add it.')
+
+		elif sys.argv[1] == '-t' and validators.domain(sys.argv[2]) and sys.argv[3] == '--crt' and len(sys.argv) == 4:#-t <domain> --crt 
+			figlet_print()
+			print ('\n-> CRT.sh Results\n')
+			crt(sys.argv[2])
+			
 		else:
 			menu_bad_execution()
-
-	elif '-p' == sys.argv[1] and '-sid' == sys.argv[3] and '-at' == sys.argv[5] and len(sys.argv) == 7:
-		figlet_print()
-		callerID(sys.argv[2], sys.argv[4], sys.argv[6])
-
-	elif '-s' == sys.argv[1] and '-d' == sys.argv[3] and '-n' == sys.argv[5] and validators.domain(sys.argv[2]) and isinstance(int(sys.argv[6]), int) and len(sys.argv) == 7:
-
-		if sys.argv[6] >= '10':
-			print ("[!] Too many pages to Google Hacking.")
-			sys.exit()
-		elif sys.argv[4] == 'dir_list':
-			figlet_print()
-			googleHacking(sys.argv[2], DIR_LIST, int(sys.argv[6]))
-		elif sys.argv[4] == 'files':
-			figlet_print()
-			googleHacking(sys.argv[2], FIL, int(sys.argv[6]))
-		elif sys.argv[4] == 'docs':
-			figlet_print()
-			googleHacking(sys.argv[2], DOC, int(sys.argv[6]))
-		elif sys.argv[4] == 'db':
-			figlet_print()
-			googleHacking(sys.argv[2], DBS, int(sys.argv[6]))
-		elif sys.argv[4] == 'login':
-			figlet_print()
-			googleHacking(sys.argv[2], LOGIN, int(sys.argv[6]))
-		elif sys.argv[4] == 'sql':
-			figlet_print()
-			googleHacking(sys.argv[2], SQL, int(sys.argv[6]))
-		elif sys.argv[4] == 'sensitive':
-			figlet_print()
-			googleHacking(sys.argv[2], SENS, int(sys.argv[6]))
-		elif sys.argv[4] == 'php':
-			figlet_print()
-			pgoogleHacking(sys.argv[2], PHP, int(sys.argv[6]))
-		else:
-			print ("[!] Bad dork.")
-			sys.exit()
-	elif '-t' == sys.argv[1] and '-sk' == sys.argv[3] and len(sys.argv) == 5:
-		figlet_print()
-		print ("\n-> Shodan Results")
-		shodan_search(sys.argv[2], sys.argv[4])
-	
-	elif '-t' == sys.argv[1] and '-wk' == sys.argv[3] and len(sys.argv) == 5:
-		if validators.url('http://' + sys.argv[2]):
-			figlet_print()
-			print ('\n-> WhatCMS Results\n')
-			whatCMS(sys.argv[2], sys.argv[4])
-		else:
-			print ('[!] Bad URL. Possible reasons:\n[!] The target URL is mistyped or doesn\'t exist.\n[!] The target URL contains the prefix \'https://\' or \'http://\'')
-	elif '-t' == sys.argv[1] and '--dns' == sys.argv[3] and validators.domain(sys.argv[2]) and len(sys.argv) == 4:
-		figlet_print()
-		print ('\n-> DNSdumpster Results\n')
-		dnsDump(sys.argv[2])
-
-	else:
-		menu_bad_execution()
 
 except IndexError:
 	menu_bad_execution()
 
 except urllib.error.URLError as e:
+	
 	if e.code == 404:
 		print ('\n[!] Data not found. Possible reasons:')
 		print ('[!] Target e-mail is mistyped or doesn\'t exist.\n[!] There aren\'t any data breaches for your target.\n[!] There aren\'t any data pastes results for your target.')
+
 	elif e.code == 403:
 		print ('\n[!] Bad request. Possible reasons:')
 		print ('[!] Your Pipl API key is mistyped.\n[!] Your OpenCnam Account SID or Auth Token are mistyped.')
