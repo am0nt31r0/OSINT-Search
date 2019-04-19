@@ -13,7 +13,7 @@
 - Presents which country a phone number belongs to
 - Presents results of google hackings searches
 - Presents results related to a domain or an IP address
-- Presents CMS for a certain URL
+- Presents CMS for a certain website
 - Presents DNS Records information for a certain domain
 - Presents Facebook ID after getting a facebook profile URL
 - Presents digital certificates for a certain domain
