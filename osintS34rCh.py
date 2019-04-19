@@ -73,7 +73,6 @@ CONFIG_FILE:
 
 def face(facebookURL):
 
-	#facebookURL = 'https://www.facebook.com/Cristiano'
 	data = urllib.request.urlopen(facebookURL).read().decode('utf-8')
 	
 	if data.count('entity_id') == 1:
