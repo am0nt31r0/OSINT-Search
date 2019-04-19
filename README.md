@@ -7,7 +7,7 @@
 
 # Functionality
 
-- Presents people information like full name, age, gender, location, languages, social networks, etc...
+- Presents personal information like full name, age, gender, location, languages, social networks, etc...
 - Presents information related to data breaches
 - Presents information related to pastes of data breaches made public
 - Presents which country a phone number belongs to
@@ -34,7 +34,7 @@ More functionalities to be added later.
 
 # Run
 
-- On the first run of the script you need to submit your API fields to get all the functionality of the script. I sugest for you to create the accounts mentioned on the description.
+- On the first run of the script you need to submit your API fields to get all the functionality of the script. I sugest you create the accounts mentioned in the description.
 - A configuration file called 'osintSearch.config.ini' is created with your data and can be edited by you.
 
 # Usage
