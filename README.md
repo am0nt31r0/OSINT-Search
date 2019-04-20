@@ -34,7 +34,7 @@ More functionalities to be added later.
 
 # Run
 
-- On the first run of the script you need to submit your API fields to get all the functionality of the script. I sugest you create the accounts mentioned in the description.
+- On the first run of the script you need to submit your API fields to get all the functionality of the script. I suggest you create the accounts mentioned in the description.
 - A configuration file called 'osintSearch.config.ini' is created with your data and can be edited by you.
 
 # Usage
