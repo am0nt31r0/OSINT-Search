@@ -29,17 +29,24 @@ More functionalities to be added later.
 # Requirements (Install)
 
 - Linux:
-Python3 - https://docs.python-guide.org/starting/install3/linux/#install3-linux
-git
+
+  Python3 - https://docs.python-guide.org/starting/install3/linux/#install3-linux
+
+  git
 
 - Windows:
-Python3 - https://www.python.org/downloads/windows/
-git - https://git-scm.com/download/win
+
+  Python3 - https://www.python.org/downloads/windows/
+
+  git - https://git-scm.com/download/win
 
 - Both:
-pip3 install -r requirements.txt
-pip3 install git+https://github.com/abenassi/Google-Search-API --upgrade
-pip3 install https://github.com/PaulSec/API-dnsdumpster.com/archive/master.zip --user
+
+  pip3 install -r requirements.txt
+  
+  pip3 install git+https://github.com/abenassi/Google-Search-API --upgrade
+  
+  pip3 install https://github.com/PaulSec/API-dnsdumpster.com/archive/master.zip --user
 
 # Run
 
