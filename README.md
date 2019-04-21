@@ -24,13 +24,22 @@ More functionalities to be added later.
 
 - Kubuntu 18.04.2 LTS
 - Kali Linux 2019.1
+- Windows 10
 
 # Requirements (Install)
 
-- Python3 - https://docs.python-guide.org/starting/install3/linux/#install3-linux
-- pip3 install -r requirements.txt
-- pip3 install git+https://github.com/abenassi/Google-Search-API --upgrade
-- pip3 install https://github.com/PaulSec/API-dnsdumpster.com/archive/master.zip --user
+- Linux:
+Python3 - https://docs.python-guide.org/starting/install3/linux/#install3-linux
+git
+
+- Windows:
+Python3 - https://www.python.org/downloads/windows/
+git - https://git-scm.com/download/win
+
+- Both:
+pip3 install -r requirements.txt
+pip3 install git+https://github.com/abenassi/Google-Search-API --upgrade
+pip3 install https://github.com/PaulSec/API-dnsdumpster.com/archive/master.zip --user
 
 # Run
 
