@@ -60,8 +60,7 @@ More functionalities to be added later.
 # Usage
 
 ``` bash
-$ osintS34rCh.py -h
-osintS34rCh v1.0
+$ osintS34rCh v1.0
 
 USAGES
   Email
@@ -86,24 +85,17 @@ USAGES
   URL
   ./osintS34rCh.py -u <url> --censys				# Censys Recon
   ./osintS34rCh.py -u <url> --cms				# WhatCMS Check
+  ./osintS34rCh.py -u <url> --facebook 				# Facebook
 
   Phone
   ./osintS34rCh.py -p <phonenumber> --callerID			# CallerID
 
-  Facebook
-  ./osintS34rCh.py -u <url> --facebook 				# Facebook
-
 OPTIONS:
-  -e <email>
-  --person 
-  -p <phone>
-  -d <dork>
-  -n <num_pages>
-  --shodan
-  -t <target IP or Domain>
-  --cms
-  --dns
   -h or --help
+  -e <email> [--pipl] [--fullcontact] [--pwned]
+  -p <phone> --calledID
+  -t <target IP or Domain> [--shodan] [--crt] [--dns] [-d] [<dork>] [--all] [-n <num_pages>]
+  -u [--cms] [--censys] [--facebook]
 
 DORKS:
   dir_list
