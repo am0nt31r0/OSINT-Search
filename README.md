@@ -4,19 +4,23 @@
 - Create an account at https://www.opencnam.com/ and get the Account SID and Auth Token.
 - Create an account at https://www.shodan.io/ and get the Shodan API key.
 - Create an account at https://whatcms.org/API and get the WhatCMS API key.
+- Create an account at https://censys.io/register and get the API ID and API secret.
+- Create an account at https://dashboard.fullcontact.com/consents and get the FullContact API key.
 
 # Functionality
 
 - Presents personal information like full name, age, gender, location, languages, social networks, etc...
-- Presents information related to data breaches
-- Presents information related to pastes of data breaches made public
-- Presents which country a phone number belongs to
-- Presents results of google hackings searches
-- Presents results related to a domain or an IP address
-- Presents CMS for a certain website
-- Presents DNS Records information for a certain domain
-- Presents Facebook ID after getting a facebook profile URL
-- Presents digital certificates for a certain domain
+- Presents information related to data breaches.
+- Presents information related to pastes of data breaches made public.
+- Presents which country a phone number belongs to.
+- Presents results of google hackings searches.
+- Presents results related to a domain or an IP address.
+- Presents CMS for a certain website.
+- Presents DNS Records information for a certain domain.
+- Presents Facebook ID and a facebook page full of photos after getting a facebook profile URL.
+- Presents digital certificates for a certain domain.
+
+- The script allows specfic searches and in bulk.
 
 More functionalities to be added later.
 
@@ -55,4 +59,4 @@ More functionalities to be added later.
 
 # Usage
 
-- ./osintS34rCh --help
+$ osintS34rCh.py -h
