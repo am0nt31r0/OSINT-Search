@@ -20,7 +20,7 @@
 - Presents Facebook ID and a facebook page full of photos after getting a facebook profile URL.
 - Presents digital certificates for a certain domain.
 
-- The script allows specfic searches and in bulk.
+The script allows specfic searches and in bulk.
 
 More functionalities to be added later.
 
@@ -36,7 +36,7 @@ More functionalities to be added later.
 
   Python3 - https://docs.python-guide.org/starting/install3/linux/#install3-linux
 
-  git
+  `sudo apt-get install git`
 
 - Windows:
 
@@ -46,11 +46,11 @@ More functionalities to be added later.
 
 - Both:
 
+  ``` bash
   pip3 install -r requirements.txt
-  
   pip3 install git+https://github.com/abenassi/Google-Search-API --upgrade
-  
   pip3 install https://github.com/PaulSec/API-dnsdumpster.com/archive/master.zip --user
+  ```
 
 # Run
 
@@ -59,4 +59,62 @@ More functionalities to be added later.
 
 # Usage
 
+``` bash
 $ osintS34rCh.py -h
+osintS34rCh v1.0
+
+USAGES
+  Email
+  ./osintS34rCh -e <target@email>				# All Searches: Pipl, FullContact, Haveibeenpwnded Data Breaches and Credentials Pastes
+  ./osintS34rCh -e <target@email> --pipl 			# Pipl
+  ./osintS34rCh -e <target@email> --fullcontact 		# FullContact
+  ./osintS34rCh -e <target@email> --pwned 			# Haveibeenpwnded Data Breaches and Credentials Pastes
+
+  Domain
+  ./osintS34rCh.py -t <domain>					# All Searches: Shodan Recon, crt.sh, DNSDumpster, All Google Hacking Dorks
+  ./osintS34rCh.py -t <domain> --shodan				# Shodan Recon
+  ./osintS34rCh.py -t <domain> --crt 				# crt.sh
+  ./osintS34rCh.py -t <domain> --dns 				# DNSDumpster
+  ./osintS34rCh.py -t <domain> -d <dork> -n <num_pages>		# Google Hacking
+  ./osintS34rCh.py -t <domain> -d --all				# All Google Hacking Dorks
+
+  IP
+  ./osintS34rCh.py -t <IP>					# All Searchs: Shodan and Censys Recon
+  ./osintS34rCh.py -t <IP> --shodan				# Shodan Recon
+  ./osintS34rCh.py -t <IP> --censys				# Censys Recon
+
+  URL
+  ./osintS34rCh.py -u <url> --censys				# Censys Recon
+  ./osintS34rCh.py -u <url> --cms				# WhatCMS Check
+
+  Phone
+  ./osintS34rCh.py -p <phonenumber> --callerID			# CallerID
+
+  Facebook
+  ./osintS34rCh.py -u <url> --facebook 				# Facebook
+
+OPTIONS:
+  -e <email>
+  --person 
+  -p <phone>
+  -d <dork>
+  -n <num_pages>
+  --shodan
+  -t <target IP or Domain>
+  --cms
+  --dns
+  -h or --help
+
+DORKS:
+  dir_list
+  files
+  docs
+  db
+  login
+  sql
+  sensitive
+  php
+
+CONFIG_FILE:
+  /yourdirectory/osintSearch.config.ini
+  ```
