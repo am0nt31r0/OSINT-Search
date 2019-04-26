@@ -13,6 +13,8 @@ from opencnam import Phone
 from google import google
 import shodan
 from dnsdumpster.DNSDumpsterAPI import DNSDumpsterAPI
+from fullcontact import FullContact
+import censys.ipv4
 
 
 PWNED_API = 'https://haveibeenpwned.com/api/v2/breachedaccount/'
@@ -34,29 +36,40 @@ PHP = 'ext:php intitle:phpinfo "published by the PHP Group" | inurl:/signin.php?
 def menu_options():
 	print("""osintS34rCh v1.0
 
-USAGES: 
-  ./osintS34rCh -e <target@email>				Data Breaches and Credentials Pastes
-  ./osintS34rCh -e <target@email> --person 			People, Data Breaches and Credentials Pastes
-  ./osintS34rCh.py -p <phonenumber> --callerID			CallerID
-  ./osintS34rCh.py -s <domain> -d <dork> -n <num_pages>		Google Hacking
-  ./osintS34rCh.py -t <IP or domain> --shodan			Shodan Recon
-  ./osintS34rCh.py -u <url> --cms				WhatCMS Check
-  ./osintS34rCh.py -t <domain> --dns 				DNSDumpster
-  ./osintS34rCh.py -u <url> --facebook 				Facebook
-  ./osintS34rCh.py -t <domain> --crt 				crt.sh
+USAGES
+  Email
+  ./osintS34rCh -e <target@email>				# All Searches: Pipl, FullContact, Haveibeenpwnded Data Breaches and Credentials Pastes
+  ./osintS34rCh -e <target@email> --pipl 			# Pipl
+  ./osintS34rCh -e <target@email> --fullcontact 		# FullContact
+  ./osintS34rCh -e <target@email> --pwned 			# Haveibeenpwnded Data Breaches and Credentials Pastes
+
+  Domain
+  ./osintS34rCh.py -t <domain>					# All Searches: Shodan Recon, crt.sh, DNSDumpster, All Google Hacking Dorks
+  ./osintS34rCh.py -t <domain> --shodan				# Shodan Recon
+  ./osintS34rCh.py -t <domain> --crt 				# crt.sh
+  ./osintS34rCh.py -t <domain> --dns 				# DNSDumpster
+  ./osintS34rCh.py -t <domain> -d <dork> -n <num_pages>		# Google Hacking
+  ./osintS34rCh.py -t <domain> -d --all				# All Google Hacking Dorks
+
+  IP
+  ./osintS34rCh.py -t <IP>					# All Searchs: Shodan and Censys Recon
+  ./osintS34rCh.py -t <IP> --shodan				# Shodan Recon
+  ./osintS34rCh.py -t <IP> --censys				# Censys Recon
+
+  URL
+  ./osintS34rCh.py -u <url> --censys				# Censys Recon
+  ./osintS34rCh.py -u <url> --cms				# WhatCMS Check
+  ./osintS34rCh.py -u <url> --facebook 				# Facebook
+
+  Phone
+  ./osintS34rCh.py -p <phonenumber> --callerID			# CallerID
 
 OPTIONS:
-  -e <email>
-  --person 
-  -p <phone>
-  -s <domain>
-  -d <dork>
-  -n <num_pages>
-  --shodan
-  -t <target IP or Domain>
-  --cms
-  --dns
   -h or --help
+  -e <email> [--pipl] [--fullcontact] [--pwned]
+  -p <phone> --calledID
+  -t <target IP or Domain> [--shodan] [--crt] [--dns] [-d] [<dork>] [--all] [-n <num_pages>]
+  -u [--cms] [--censys] [--facebook]
 
 DORKS:
   dir_list
@@ -71,51 +84,6 @@ DORKS:
 CONFIG_FILE:
   /yourdirectory/osintSearch.config.ini""")
 
-def face(facebookURL):
-
-	data = urllib.request.urlopen(facebookURL).read().decode('utf-8')
-	
-	if data.count('entity_id') == 1:
-		eindex = int(data.index('entity_id')) + 12
-		facebook_id = ''
-		for i in data[eindex:]:
-			if i == '"':
-				break
-			else:
-				facebook_id = facebook_id + i			
-		print ("[*] Facebook ID: " + facebook_id)
-		print ("[*] Login to facebook and open: " + 'https://www.facebook.com/search/' + facebook_id + '/photos-of')
-	else:
-		print ('[!] Facebook ID not found.')
-
-def crt(domain):
-	
-	req = urllib.request.Request(CRT_URL + domain + '&output=json')
-	r = urllib.request.urlopen(req).read().decode('utf-8')
-
-	j = json.loads(r)
-
-	print ('[@] Target: ' + domain + '\n')
-
-	if len(j) > 0:
-
-		print ('[-] URL: ' + CRT_URL + domain)
-
-		for cert in j:
-			print ("""
-[*] Issuer CA ID: {}
-[*] Issuer Name: {}
-[*] Name: {}
-[*] crt.sh ID: {}
-[*] Logged At: {}
-[*] Not before: {}
-[*] Not after: {}
-[*] URL: {}""".format(cert.get('issuer_ca_id'), cert.get('issuer_name'), cert.get('name_value'), cert.get('min_cert_id'), cert.get('min_entry_timestamp'), cert.get('not_before'), cert.get('not_after'), 'https://crt.sh/?id=' + str(cert['min_cert_id'])))
-
-	else:
-		print ("[!] crt.sh info not found.")
-		sys.exit()
-
 def figlet_print():
 	f = Figlet(font='slant')
 	print (f.renderText('osintS34rCh'))
@@ -128,10 +96,13 @@ def menu_bad_execution():
 def apiFile():
 
 	global pipl_key
+	global fullcontact_key
 	global caller_sid
 	global caller_auth
 	global shodan_key
 	global cms_key
+	global censys_api_id
+	global censys_api_secret
 
 	pwd = os.path.dirname(sys.argv[0])
 	filename = pwd + '/osintSearch.config.ini'
@@ -146,18 +117,25 @@ def apiFile():
 		print ("[-] Hit enter if you don't have the keys.\n[-] The data will be written into a file called [" + filename + "] that can be edited by you after.\n")
 
 		p_api_key = input("[?] What is your PIPL API key?\n")
+		f_api_key = input("[?] What is your FullContact API key?\n")
 		cnam_sid = input("[?] What is your CNAM SID?\n")
 		cnam_at = input("[?] What is your CNAM AUTH_TOKEN?\n")
 		s_api_key = input("[?] What is your Shodan API key?\n")
 		w_api_key = input("[?] What is your WhatCMS API key?\n")
+		c_api_id = input("[?] What is your Censys API id?\n")
+		c_api_secret = input("[?] What is your Censys API secret?\n")
+
 		
 		config['PIPL'] = {}
 		config['PIPL']['API_KEY'] = p_api_key
+		config['FULLCONTACT'] = {}
+		config['FULLCONTACT']['API_KEY'] = f_api_key
 		config['CNAM'] = {'SID': cnam_sid, 'AUTH_TOKEN': cnam_at}
 		config['SHODAN'] = {}
 		config['SHODAN']['API_KEY'] = s_api_key
 		config['WHATCMS'] = {}
 		config['WHATCMS']['API_KEY'] = w_api_key
+		config['CENSYS'] = {'API_ID': c_api_id, 'API_SECRET': c_api_secret}
 
 		with open(filename, 'w') as configfile:
 			config.write(configfile)
@@ -171,10 +149,13 @@ def apiFile():
 		config.read(filename)
 
 		pipl_key = config['PIPL']['API_KEY']
+		fullcontact_key = config['FULLCONTACT']['API_KEY']
 		caller_sid = config['CNAM']['SID']
 		caller_auth = config['CNAM']['AUTH_TOKEN']
 		shodan_key = config['SHODAN']['API_KEY']
 		cms_key = config['WHATCMS']['API_KEY']
+		censys_api_id = config['CENSYS']['API_ID']
+		censys_api_secret = config['CENSYS']['API_SECRET']
 		
 		return True
 
@@ -183,6 +164,8 @@ def apiFile():
 		return False
 
 def piplSearch(email, key):
+
+	print ("-> Pipl Results")
 
 	if 'email' in locals() and 'key' in locals():
 
@@ -454,7 +437,7 @@ def googleHacking(domain, dork, numP):
 
 	results = google.search('site:' + domain + ' ' + dork, numP)
 
-	print ("-> Google Hacking Resuts")
+	print ("\n-> Google Hacking Resuts")
 
 	if not len(results) == 0:
 		for i in range(len(results)):
@@ -470,7 +453,20 @@ def googleHacking(domain, dork, numP):
 	else:
 		print ("[!] Nothing was retrieved.")
 
+def allGoogleHacking(domain):
+
+	googleHacking(domain, DIR_LIST, 3)
+	googleHacking(domain, FIL, 3)
+	googleHacking(domain, DOC, 3)
+	googleHacking(domain, DBS, 3)
+	googleHacking(domain, LOGIN, 3)
+	googleHacking(domain, SQL, 3)
+	googleHacking(domain, SENS, 3)
+	googleHacking(domain, PHP, 3)
+
 def shodan_search(target, api_key):
+
+	print ("\n-> Shodan Results")
 	
 	api = shodan.Shodan(api_key)
 
@@ -488,7 +484,7 @@ def shodan_search(target, api_key):
 [*] Latitude: {}
 [*] Operation System: {}
 [*] Organization: {}
-[*] ISP: {}""".format(host['city'], host['country_name'], host['postal_code'], host.get('longitude', 'n/a'), host.get('latitude', 'n/a'), host['os'], host['org'], host['isp']))
+[*] ISP: {}""".format(host['city'], host['country_name'], host['postal_code'], host.get('longitude', 'N/A'), host.get('latitude', 'N/A'), host['os'], host['org'], host['isp']))
 
 		if len(host['ports']) >= 1:
 			for port in host['ports']:
@@ -514,7 +510,7 @@ def shodan_search(target, api_key):
 [*] Operation System: {}
 [*] Organization: {}
 [*] ISP: {}
-[*] Port: {}""".format(service['ip_str'], service['location'].get('city', 'n/a'), service['location'].get('country_name', 'n/a'), service['location'].get('postal_code', 'n/a'), service['location'].get('longitude', 'n/a'), service['location'].get('latitude', 'n/a'), service['os'], service['org'], service.get('isp', 'n/a'), service.get('isp', 'n/a'),service.get('port')))
+[*] Port: {}""".format(service['ip_str'], service['location'].get('city', 'N/A'), service['location'].get('country_name', 'N/A'), service['location'].get('postal_code', 'N/A'), service['location'].get('longitude', 'N/A'), service['location'].get('latitude', 'N/A'), service['os'], service['org'], service.get('isp', 'N/A'), service.get('isp', 'N/A'),service.get('port')))
 				for hostname in service['hostnames']:
 					print ("[*] Hostname: " + hostname + '\n')
 
@@ -527,13 +523,15 @@ def shodan_search(target, api_key):
 
 def whatCMS(target, api_key):
 
+	print ('\n-> WhatCMS Results\n')
+
 	data = urllib.request.urlopen(WHATCMS_API + api_key + '&url=' + target)
 	j = json.load(data)
 
 	if 'code' in j['result']:
 		if j['result']['code'] == 200:
 			print ("""[*] CMS: {} {}
-[*] Accuracy: {}""".format(j['result'].get('name', 'n/a'), j['result'].get('version', 'n/a'), j['result'].get('confidence', 'n/a')))
+[*] Accuracy: {}""".format(j['result'].get('name', 'N/A'), j['result'].get('version', 'N/A'), j['result'].get('confidence', 'N/A')))
 		if j['result']['code'] == 0:
 			print ('[!] whatCMS: ' + j['result']['msg'])
 		if j['result']['code'] == 100:
@@ -560,6 +558,8 @@ def whatCMS(target, api_key):
 		print ("[!] Error")
 
 def dnsDump(target_domain):
+
+	print ('\n-> DNSdumpster Results\n')
 	
 	result = DNSDumpsterAPI().search(target_domain)
 
@@ -604,14 +604,180 @@ def dnsDump(target_domain):
 - Header: {}
 """.format(record['domain'], record['ip'], record['reverse_dns'], record['as'], record['provider'], record['country'], record['header']))
 
+def face(facebookURL):
+
+	print ('\n-> Facebook Results\n')
+
+	data = urllib.request.urlopen(facebookURL).read().decode('utf-8')
+	
+	if data.count('entity_id') == 1:
+		eindex = int(data.index('entity_id')) + 12
+		facebook_id = ''
+		for i in data[eindex:]:
+			if i == '"':
+				break
+			else:
+				facebook_id = facebook_id + i			
+		print ("[*] Facebook ID: " + facebook_id)
+		print ("[*] Login to facebook and open: " + 'https://www.facebook.com/search/' + facebook_id + '/photos-of')
+	else:
+		print ('[!] Facebook ID not found.')
+
+def crt(domain):
+
+	print ('\n-> CRT.sh Results\n')
+	
+	req = urllib.request.Request(CRT_URL + domain + '&output=json')
+	r = urllib.request.urlopen(req).read().decode('utf-8')
+
+	j = json.loads(r)
+
+	print ('[@] Target: ' + domain + '\n')
+
+	if len(j) > 0:
+
+		print ('[-] URL: ' + CRT_URL + domain)
+
+		for cert in j:
+			print ("""
+[*] Issuer CA ID: {}
+[*] Issuer Name: {}
+[*] Name: {}
+[*] crt.sh ID: {}
+[*] Logged At: {}
+[*] Not before: {}
+[*] Not after: {}
+[*] URL: {}""".format(cert.get('issuer_ca_id', 'N/A'), cert.get('issuer_name', 'N/A'), cert.get('name_value', 'N/A'), cert.get('min_cert_id', 'N/A'), cert.get('min_entry_timestamp', 'N/A'), cert.get('not_before', 'N/A'), cert.get('not_after', 'N/A'), 'https://crt.sh/?id=' + str(cert['min_cert_id'])))
+
+	else:
+		print ("[!] crt.sh info not found.")
+		sys.exit()
+
+def fullcontact(target, api_key):
+
+	print ("\n-> FullContact Results\n")
+
+	fc = FullContact(api_key)
+	r = fc.person(email=target)
+
+	if r.status_code == 404:
+		print ("[!] Data about " + target + " not found.")
+
+	elif r.status_code == 200:
+
+		j = r.json()
+
+		print ("""
+[*] Name: {}
+[*] Family Name: {}
+[*] Full Name: {}""".format(j['contactInfo'].get('givenName', 'N/A'), j['contactInfo'].get('familyName', 'N/A'), j['contactInfo'].get('fullName', 'N/A')))
+
+		for site in j['contactInfo']['websites']:
+			print ('[*] Website: {}'.format(site.get('url', 'N/A')))
+		
+		for org in j['organizations']:
+			print ('[*] Organization: {} - Started: {} - Title: {} - Current: {}'.format(org.get('name', 'N/A'), org.get('startDate', 'N/A'), org.get('title', 'N/A'), org.get('current', 'N/A')))
+
+		print ("""[*] Location: {}
+[*] Continent: {}""".format(j['demographics']['locationDeduced'].get('deducedLocation' 'N/A'), j['demographics']['locationDeduced']['continent'].get('name', 'N/A')))
+
+		for social in j['socialProfiles']:
+			print ("""[*] Biography: {}
+[*] From: {}
+[*] Followers: {}
+[*] Following: {}
+[*] Username: {}
+[*] URL: {}""".format(social.get('bio', 'N/A'), social.get('typeName', 'N/A'), social.get('followers', 'N/A'), social.get('following', 'N/A'), social.get('username', 'N/A'), social.get('url', 'N/A')))
+
+
+def censysSearch(target, censys_id, censys_secret):
+
+	print ("\n-> Censys Results\n")
+
+	if validators.ip_address.ipv4(target):
+
+		c = censys.ipv4.CensysIPv4(api_id=censys_id, api_secret=censys_secret)
+
+		data = c.view(target)
+
+		print ('[*] IP: ' + data['ip'])
+
+		for protocol in data['protocols']:
+			print ('[*] Protocol: ' + protocol)
+
+		print ("""[*] Country: {}
+[*] Registered Country: {}
+[*] Longitude: {}
+[*] Latitude: {}
+[*] Continent: {}
+[*] Timezone: {}""".format(data['location'].get('country', 'N/A'), data['location'].get('registered_country', 'N/A'), data['location'].get('longitude', 'N/A'), data['location'].get('latitude', 'N/A'), data['location'].get('continent', 'N/A'), data['location'].get('timezone', 'N/A')))
+
+		print ("""[*] AS Name: {}
+[*] AS Country Code: {}
+[*] AS Description: {}""".format(data['autonomous_system'].get('name', 'N/A'), data['autonomous_system'].get('country_code', 'N/A'), data['autonomous_system'].get('description', 'N/A')))
+
+		if '443' in data.keys():
+			print ("\n[*] Service: https/443")
+
+			if 'tls' in data['443']['https'].keys():
+
+				if 'dns_names' in data['443']['https']['tls']['certificate']['parsed']['extensions']['subject_alt_name'].keys():
+					print ("[*] Certificate DNS Names: " + str(data['443']['https']['tls']['certificate']['parsed']['extensions']['subject_alt_name']['dns_names']))
+
+				if 'ip_addresses' in data['443']['https']['tls']['certificate']['parsed']['extensions']['subject_alt_name'].keys():
+					print ("[*] Certificate IP addresses: " + str(data['443']['https']['tls']['certificate']['parsed']['extensions']['subject_alt_name']['ip_addresses']))
+
+				if 'issuer' in data['443']['https']['tls']['certificate']['parsed'].keys():
+					print ("[*] Issued By: " + str(data['443']['https']['tls']['certificate']['parsed']['issuer']))
+
+		if '53' in data.keys():
+			print ("\n[*] Service: dns/53")
+
+			if 'lookup' in data['53']['dns'].keys():
+				if 'open_resolver' in data['53']['dns']['lookup'].keys():
+					print ("[*] Open Resolver: " + str(data['53']['dns']['lookup']['open_resolver']))
+
+				if 'answers' in data['53']['dns']['lookup'].keys():
+
+					for answer in data['53']['dns']['lookup']['answers']:
+						print("[*] Lookup Answers: " + str(answer))
+
+
+		
+		print ("\n[*] Updated at: " + data['updated_at'])
+
+
+	'''
+
+	data = list(c.search(target, max_records=30))
+
+	for result in data:
+		print ("""
+[*] IP: {}
+[*] Country: {}
+[*] Registered Country: {}
+[*] City: {}
+[*] Province: {}
+[*] Longitude: {}
+[*] Latitude: {}
+[*] Continent: {}
+[*] Timezone: {}""".format(result.get('ip', 'N/A'), result.get('location.country', 'N/A'), result.get('location.registered_country', 'N/A'), result.get('location.city', 'N/A'), result.get('location.province', 'N/A'), result.get('location.longitude', 'N/A'), result.get('location.latitude', 'N/A'), result.get('location.continent', 'N/A'), result.get('location.timezone', 'N/A')))
+		
+		for protocol in result['protocols']:
+			print ("[*] Protocol: " + str(protocol))
+
+			'''
 
 try:
 
 	pipl_key = ''
+	fullcontact_key = ''
 	caller_sid = ''
 	caller_auth = ''
 	shodan_key = ''
 	cms_key = ''
+	censys_api_id = ''
+	censys_api_secret = ''
 	
 	if apiFile():
 
@@ -623,21 +789,41 @@ try:
 
 			if validators.email(sys.argv[2]) and len(sys.argv) == 3:
 				figlet_print()
-				haveibeenpwned(sys.argv[2])
 
-			elif validators.email(sys.argv[2]) and '--person' == sys.argv[3] and len(sys.argv) == 4:
+				if not pipl_key == '':
+					piplSearch(sys.argv[2], pipl_key)
+				if not fullcontact_key == '':
+					fullcontact(sys.argv[2], fullcontact_key)
+
+				haveibeenpwned(sys.argv[2])
+				sys.exit()
+
+			elif validators.email(sys.argv[2]) and '--pipl' == sys.argv[3] and len(sys.argv) == 4:
 				if pipl_key == '':
 					print ("[*] Pipl API key don't exist.")
 					sys.exit()
 				else:
 					figlet_print()
-					print ("-> Pipl Results")
 					piplSearch(sys.argv[2], pipl_key)
-					haveibeenpwned(sys.argv[2])
+					sys.exit()
 
+			elif validators.email(sys.argv[2]) and '--fullcontact' == sys.argv[3] and len(sys.argv) == 4:
+
+				if fullcontact_key == '':
+					print ("[*] FullContact API key don't exist.")
+					sys.exit()
+				else:
+					figlet_print()
+					fullcontact(sys.argv[2], pipl_key)
+					sys.exit()
+
+			elif validators.email(sys.argv[2]) and '--pwned' == sys.argv[3] and len(sys.argv) == 4:
+				figlet_print()
+				haveibeenpwned(sys.argv[2])
+				sys.exit()
 			else:
 				menu_bad_execution()
-				
+
 		elif sys.argv[1] == '-p' and sys.argv[3] == '--callerID' and len(sys.argv) == 4:
 			
 			figlet_print()
@@ -652,72 +838,101 @@ try:
 				print ("[*] Target phone number is incorrect.")
 				sys.exit()
 
-		elif sys.argv[1] == '-s' and sys.argv[3] == '-d' and sys.argv[5] == '-n' and validators.domain(sys.argv[2]) and isinstance(int(sys.argv[6]), int) and len(sys.argv) == 7:
+		elif sys.argv[1] == '-t':
 
-			if sys.argv[6] > '10':
-				print ("[!] Too many pages to Google Hacking.")
-				sys.exit()
-			elif sys.argv[4] == 'dir_list':
-				figlet_print()
-				googleHacking(sys.argv[2], DIR_LIST, int(sys.argv[6]))
-			elif sys.argv[4] == 'files':
-				figlet_print()
-				googleHacking(sys.argv[2], FIL, int(sys.argv[6]))
-			elif sys.argv[4] == 'docs':
-				figlet_print()
-				googleHacking(sys.argv[2], DOC, int(sys.argv[6]))
-			elif sys.argv[4] == 'db':
-				figlet_print()
-				googleHacking(sys.argv[2], DBS, int(sys.argv[6]))
-			elif sys.argv[4] == 'login':
-				figlet_print()
-				googleHacking(sys.argv[2], LOGIN, int(sys.argv[6]))
-			elif sys.argv[4] == 'sql':
-				figlet_print()
-				googleHacking(sys.argv[2], SQL, int(sys.argv[6]))
-			elif sys.argv[4] == 'sensitive':
-				figlet_print()
-				googleHacking(sys.argv[2], SENS, int(sys.argv[6]))
-			elif sys.argv[4] == 'php':
-				figlet_print()
-				pgoogleHacking(sys.argv[2], PHP, int(sys.argv[6]))
-			else:
-				print ("[!] Bad dork.")
-				sys.exit()
-		elif sys.argv[1] == '-t' and sys.argv[3] == '--shodan' and len(sys.argv) == 4:
-			figlet_print()
-			print ("\n-> Shodan Results")
-			shodan_search(sys.argv[2], shodan_key)
-		
+			if validators.domain(sys.argv[2]):
+
+				if len(sys.argv) == 3:
+					# do everything
+					if not shodan_key == '':
+						shodan_search(sys.argv[2], shodan_key)
+
+					crt(sys.argv[2])
+					dnsDump(sys.argv[2])
+					allGoogleHacking(sys.argv[2])
+
+
+				elif sys.argv[3] == '-d' and sys.argv[4] == '--all' and len(sys.argv) == 5:
+					# All Dorks
+					figlet_print()
+					allGoogleHacking(sys.argv[2])
+
+				elif sys.argv[3] == '-d' and sys.argv[5] == '-n' and isinstance(int(sys.argv[6]), int) and len(sys.argv) == 7:
+
+					if sys.argv[6] > '10':
+						print ("[!] Too many pages to Google Hacking.")
+						sys.exit()
+					elif sys.argv[4] == 'dir_list':
+						figlet_print()
+						googleHacking(sys.argv[2], DIR_LIST, int(sys.argv[6]))
+					elif sys.argv[4] == 'files':
+						figlet_print()
+						googleHacking(sys.argv[2], FIL, int(sys.argv[6]))
+					elif sys.argv[4] == 'docs':
+						figlet_print()
+						googleHacking(sys.argv[2], DOC, int(sys.argv[6]))
+					elif sys.argv[4] == 'db':
+						figlet_print()
+						googleHacking(sys.argv[2], DBS, int(sys.argv[6]))
+					elif sys.argv[4] == 'login':
+						figlet_print()
+						googleHacking(sys.argv[2], LOGIN, int(sys.argv[6]))
+					elif sys.argv[4] == 'sql':
+						figlet_print()
+						googleHacking(sys.argv[2], SQL, int(sys.argv[6]))
+					elif sys.argv[4] == 'sensitive':
+						figlet_print()
+						googleHacking(sys.argv[2], SENS, int(sys.argv[6]))
+					elif sys.argv[4] == 'php':
+						figlet_print()
+						googleHacking(sys.argv[2], PHP, int(sys.argv[6]))
+					else:
+						print ("[!] Bad dork.")
+						sys.exit()
+				elif sys.argv[3] == '--shodan' and len(sys.argv) == 4:
+
+					if shodan_key == '':
+						print ('[!] Shodan API key don\'t exist.')
+						sys.exit()
+					else:
+						figlet_print()
+						shodan_search(sys.argv[2], shodan_key)
+
+				elif sys.argv[3] == '--crt' and len(sys.argv) == 4:
+					figlet_print()
+					crt(sys.argv[2])
+
+				elif sys.argv[3] == '--dns' and len(sys.argv) == 4:
+					figlet_print()
+					dnsDump(sys.argv[2])
+
+			elif validators.ip_address.ipv4(sys.argv[2]):
+				if len(sys.argv) == 3:
+					# do everything
+					if not shodan_key == '':
+						shodan_search(sys.argv[2], shodan_key)
+
+					if not (censys_api_id == '' and censys_api_secret == ''):
+						censysSearch(sys.argv[2], censys_api_id, censys_api_secret) 
+
 		elif sys.argv[1] == '-u' and sys.argv[3] == '--cms' and len(sys.argv) == 4:
+
 			if cms_key == '':
 				print ("[*] WhatCMS API key don't exist.")
 				sys.exit()
 
 			elif validators.url('http://' + sys.argv[2]):
 				figlet_print()
-				print ('\n-> WhatCMS Results\n')
 				whatCMS(sys.argv[2], cms_key)
 			else:
 				print ('[!] Bad URL. Possible reasons:\n[!] The target URL is mistyped or doesn\'t exist.\n[!] The target URL contains the prefix \'https://\' or \'http://\' - Remove it.')
 
-		elif sys.argv[1] == '-t' and validators.domain(sys.argv[2]) and sys.argv[3] == '--dns' and len(sys.argv) == 4:
-			figlet_print()
-			print ('\n-> DNSdumpster Results\n')
-			dnsDump(sys.argv[2])
-
 		elif sys.argv[1] == '-u' and sys.argv[3] == '--facebook':
 			if validators.url(sys.argv[2]):
 				figlet_print()
-				print ('\n-> Facebook Results\n')
 				face(sys.argv[2])
 			else:
 				print ('[!] Bad URL. Possible reasons:\n[!] The target URL is mistyped or doesn\'t exist.\n[!] The target URL don\'t contain the prefix \'https://\' or \'http://\' - Add it.')
-
-		elif sys.argv[1] == '-t' and validators.domain(sys.argv[2]) and sys.argv[3] == '--crt' and len(sys.argv) == 4:#-t <domain> --crt 
-			figlet_print()
-			print ('\n-> CRT.sh Results\n')
-			crt(sys.argv[2])
 			
 		else:
 			menu_bad_execution()
@@ -734,12 +949,17 @@ except urllib.error.URLError as e:
 	elif e.code == 403:
 		print ('\n[!] Bad request. Possible reasons:')
 		print ('[!] Your Pipl API key is mistyped.\n[!] Your OpenCnam Account SID or Auth Token are mistyped.')
+	else:
+		print (str(e))
 
 except urllib.error.HTTPError as e:
 	print (tr(e) + '\n\nPossible reasons:\n[!] Bad Internet connection.\n[!] Resource doesn\'t exist')
 
 except shodan.APIError as e:
 	print ('[!] Shodan: ' + str(e))
+
+except phonenumbers.phonenumberutil.NumberParseException as e:
+	print (e)
 
 except KeyboardInterrupt:
 	sys.exit()
