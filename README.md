@@ -90,6 +90,7 @@ USAGES
 
   URL
   ./osintS34rCh.py -u <url>					# WhatCMS Check, HackerTarget - Extract URLs
+  ./osintS34rCh.py -u <url> --censys				# Censys Recon -> Falta implementar
   ./osintS34rCh.py -u <url> --cms				# WhatCMS Check
   ./osintS34rCh.py -u <url> --extract				# HackerTarget - Extract URLs
   ./osintS34rCh.py -u <url> --facebook 				# Facebook
@@ -100,9 +101,9 @@ USAGES
 OPTIONS:
   -h or --help
   -e <email> [--pipl] [--fullcontact] [--pwned]
-  -p <phone> --calledID
   -t <target IP or Domain> [--shodan] [--crt] [--dns] [-d] [<dork>] [--all] [-n <num_pages>]
-  -u [--cms] [--censys] [--facebook]
+  -u [--cms] [--censys] [--extract] [--facebook]
+  -p <phone> --callerID
 
 DORKS:
   dir_list
