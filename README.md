@@ -90,7 +90,6 @@ USAGES
 
   URL
   ./osintS34rCh.py -u <url>					# WhatCMS Check, HackerTarget - Extract URLs
-  ./osintS34rCh.py -u <url> --censys				# Censys Recon -> Falta implementar
   ./osintS34rCh.py -u <url> --cms				# WhatCMS Check
   ./osintS34rCh.py -u <url> --extract				# HackerTarget - Extract URLs
   ./osintS34rCh.py -u <url> --facebook 				# Facebook
