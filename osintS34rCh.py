@@ -6,6 +6,7 @@ import json
 import configparser
 import urllib.request
 import urllib.error
+import requests
 import validators
 import phonenumbers
 from pyfiglet import Figlet
@@ -22,6 +23,9 @@ PWNED_PASTES_API = 'https://haveibeenpwned.com/api/v2/pasteaccount/'
 USER_AGENT = 'urllib-example/0.1'
 WHATCMS_API = 'https://whatcms.org/APIEndpoint/Detect?key='
 CRT_URL = 'https://crt.sh/?q=%25'
+TOWERDATA_URL = 'https://api.towerdata.com/v5/ev'
+HK_PAGELINKS_URL = 'https://api.hackertarget.com/pagelinks/?q='
+HK_ZONETRANSFER_URL = 'https://api.hackertarget.com/zonetransfer/?q='
 
 # Google Hacking queries - adapt as you want - https://www.exploit-db.com/google-hacking-database
 DIR_LIST = 'intitle:index.of'
@@ -38,16 +42,17 @@ def menu_options():
 
 USAGES
   Email
-  ./osintS34rCh -e <target@email>				# All Searches: Pipl, FullContact, Haveibeenpwnded Data Breaches and Credentials Pastes
+  ./osintS34rCh -e <target@email>				# All Searches: Pipl, FullContact, Haveibeenpwnded Data Breaches and Credentials Pastes, TowerData - validate e-mail
   ./osintS34rCh -e <target@email> --pipl 			# Pipl
   ./osintS34rCh -e <target@email> --fullcontact 		# FullContact
   ./osintS34rCh -e <target@email> --pwned 			# Haveibeenpwnded Data Breaches and Credentials Pastes
+  ./osintS34rCh -e <target@email> --validate			# TowerData - validate e-mail
 
   Domain
-  ./osintS34rCh.py -t <domain>					# All Searches: Shodan Recon, crt.sh, DNSDumpster, All Google Hacking Dorks
+  ./osintS34rCh.py -t <domain>					# All Searches: Shodan Recon, crt.sh, DNSDumpster, All Google Hacking Dorks, HackerTarget - DNS Zonetransfer
   ./osintS34rCh.py -t <domain> --shodan				# Shodan Recon
   ./osintS34rCh.py -t <domain> --crt 				# crt.sh
-  ./osintS34rCh.py -t <domain> --dns 				# DNSDumpster
+  ./osintS34rCh.py -t <domain> --dns 				# DNSDumpster, HackerTarget - DNS Zonetransfer
   ./osintS34rCh.py -t <domain> -d <dork> -n <num_pages>		# Google Hacking
   ./osintS34rCh.py -t <domain> -d --all				# All Google Hacking Dorks
 
@@ -55,10 +60,12 @@ USAGES
   ./osintS34rCh.py -t <IP>					# All Searchs: Shodan and Censys Recon
   ./osintS34rCh.py -t <IP> --shodan				# Shodan Recon
   ./osintS34rCh.py -t <IP> --censys				# Censys Recon
+  ./osintS34rCh.py -t <IP> --torrent				# KnowWhatYouDownload URL
 
   URL
-  ./osintS34rCh.py -u <url> --censys				# Censys Recon
+  ./osintS34rCh.py -u <url>					# WhatCMS Check, HackerTarget - Extract URLs
   ./osintS34rCh.py -u <url> --cms				# WhatCMS Check
+  ./osintS34rCh.py -u <url> --extract				# HackerTarget - Extract URLs
   ./osintS34rCh.py -u <url> --facebook 				# Facebook
 
   Phone
@@ -66,10 +73,10 @@ USAGES
 
 OPTIONS:
   -h or --help
-  -e <email> [--pipl] [--fullcontact] [--pwned]
-  -p <phone> --calledID
-  -t <target IP or Domain> [--shodan] [--crt] [--dns] [-d] [<dork>] [--all] [-n <num_pages>]
-  -u [--cms] [--censys] [--facebook]
+  -e <email> [--pipl] [--fullcontact] [--pwned] [--validate]
+  -t <target IP or Domain> [--shodan] [--censys] [--torrent] [--crt] [--dns] [-d] [<dork>] [--all] [-n <num_pages>]
+  -u [--cms] [--censys] [--extract] [--facebook]
+  -p <phone> --callerID
 
 DORKS:
   dir_list
@@ -103,6 +110,7 @@ def apiFile():
 	global cms_key
 	global censys_api_id
 	global censys_api_secret
+	global towerdata_api_key
 
 	pwd = os.path.dirname(sys.argv[0])
 	filename = pwd + '/osintSearch.config.ini'
@@ -124,6 +132,7 @@ def apiFile():
 		w_api_key = input("[?] What is your WhatCMS API key?\n")
 		c_api_id = input("[?] What is your Censys API id?\n")
 		c_api_secret = input("[?] What is your Censys API secret?\n")
+		t_api_key = input("[?] What is your TowerData API key?\n")
 
 		
 		config['PIPL'] = {}
@@ -136,6 +145,8 @@ def apiFile():
 		config['WHATCMS'] = {}
 		config['WHATCMS']['API_KEY'] = w_api_key
 		config['CENSYS'] = {'API_ID': c_api_id, 'API_SECRET': c_api_secret}
+		config['TOWERDATA'] = {}
+		config['TOWERDATA']['API_KEY'] = t_api_key
 
 		with open(filename, 'w') as configfile:
 			config.write(configfile)
@@ -156,6 +167,7 @@ def apiFile():
 		cms_key = config['WHATCMS']['API_KEY']
 		censys_api_id = config['CENSYS']['API_ID']
 		censys_api_secret = config['CENSYS']['API_SECRET']
+		towerdata_api_key = config['TOWERDATA']['API_KEY']
 		
 		return True
 
@@ -437,8 +449,6 @@ def googleHacking(domain, dork, numP):
 
 	results = google.search('site:' + domain + ' ' + dork, numP)
 
-	print ("\n-> Google Hacking Resuts")
-
 	if not len(results) == 0:
 		for i in range(len(results)):
 			print ("[*] Name: " + str(results[i].name))
@@ -453,16 +463,16 @@ def googleHacking(domain, dork, numP):
 	else:
 		print ("[!] Nothing was retrieved.")
 
-def allGoogleHacking(domain):
+def allGoogleHacking(domain, pages):
 
-	googleHacking(domain, DIR_LIST, 3)
-	googleHacking(domain, FIL, 3)
-	googleHacking(domain, DOC, 3)
-	googleHacking(domain, DBS, 3)
-	googleHacking(domain, LOGIN, 3)
-	googleHacking(domain, SQL, 3)
-	googleHacking(domain, SENS, 3)
-	googleHacking(domain, PHP, 3)
+	googleHacking(domain, DIR_LIST, pages)
+	googleHacking(domain, FIL, pages)
+	googleHacking(domain, DOC, pages)
+	googleHacking(domain, DBS, pages)
+	googleHacking(domain, LOGIN, pages)
+	googleHacking(domain, SQL, pages)
+	googleHacking(domain, SENS, pages)
+	googleHacking(domain, PHP, pages)
 
 def shodan_search(target, api_key):
 
@@ -643,11 +653,9 @@ def crt(domain):
 [*] Issuer CA ID: {}
 [*] Issuer Name: {}
 [*] Name: {}
-[*] crt.sh ID: {}
 [*] Logged At: {}
 [*] Not before: {}
-[*] Not after: {}
-[*] URL: {}""".format(cert.get('issuer_ca_id', 'N/A'), cert.get('issuer_name', 'N/A'), cert.get('name_value', 'N/A'), cert.get('min_cert_id', 'N/A'), cert.get('min_entry_timestamp', 'N/A'), cert.get('not_before', 'N/A'), cert.get('not_after', 'N/A'), 'https://crt.sh/?id=' + str(cert['min_cert_id'])))
+[*] Not after: {}""".format(cert.get('issuer_ca_id', 'N/A'), cert.get('issuer_name', 'N/A'), cert.get('name_value', 'N/A'), cert.get('min_entry_timestamp', 'N/A'), cert.get('not_before', 'N/A'), cert.get('not_after', 'N/A')))
 
 	else:
 		print ("[!] crt.sh info not found.")
@@ -746,27 +754,45 @@ def censysSearch(target, censys_id, censys_secret):
 		
 		print ("\n[*] Updated at: " + data['updated_at'])
 
+def emailValidator(target, key):
 
-	'''
+	print('\n-> TowerData results\n')
 
-	data = list(c.search(target, max_records=30))
+	querystring = {"timeout":"10","email":target,"api_key":key}
+	response = requests.request("GET", TOWERDATA_URL, params=querystring)
+	
+	j = json.loads(response.text)
 
-	for result in data:
-		print ("""
-[*] IP: {}
-[*] Country: {}
-[*] Registered Country: {}
-[*] City: {}
-[*] Province: {}
-[*] Longitude: {}
-[*] Latitude: {}
-[*] Continent: {}
-[*] Timezone: {}""".format(result.get('ip', 'N/A'), result.get('location.country', 'N/A'), result.get('location.registered_country', 'N/A'), result.get('location.city', 'N/A'), result.get('location.province', 'N/A'), result.get('location.longitude', 'N/A'), result.get('location.latitude', 'N/A'), result.get('location.continent', 'N/A'), result.get('location.timezone', 'N/A')))
-		
-		for protocol in result['protocols']:
-			print ("[*] Protocol: " + str(protocol))
+	if len(j) > 0:
+		if 'email_validation' in j.keys():
+			print ("""[*] Email: {}
+[*] Gender: {}
+[*] Status: {}""".format(j['email_validation'].get('address', 'N/A'), j.get('gender', 'N/A'), j['email_validation'].get('status', 'N/A')))
+	else: 
+		print ('[*] Couldn\'t retrieve information about ' + target + '.')
 
-			'''
+def dnsZoneTranfers(target):
+
+	print ('\n-> Zone Transfer Results')
+
+	data = urllib.request.urlopen(HK_ZONETRANSFER_URL + target).read().decode('utf-8')
+
+	print (data)
+
+def extractURLs(target):
+
+	print ('\n-> Extract URLs Results\n')
+
+	data = urllib.request.urlopen(HK_PAGELINKS_URL + target).read().decode('utf-8')
+
+	print (data)
+
+def knowWhatYouDownload(target):
+	
+	print ('\n-> Know What You Download Results\n')
+
+	print ('[*] https://iknowwhatyoudownload.com/en/peer/?ip=' + target)
+
 
 try:
 
@@ -778,6 +804,7 @@ try:
 	cms_key = ''
 	censys_api_id = ''
 	censys_api_secret = ''
+	towerdata_api_key = ''
 	
 	if apiFile():
 
@@ -790,6 +817,8 @@ try:
 			if validators.email(sys.argv[2]) and len(sys.argv) == 3:
 				figlet_print()
 
+				if not towerdata_api_key == '':
+					emailValidator(sys.argv[2], towerdata_api_key)
 				if not pipl_key == '':
 					piplSearch(sys.argv[2], pipl_key)
 				if not fullcontact_key == '':
@@ -821,6 +850,15 @@ try:
 				figlet_print()
 				haveibeenpwned(sys.argv[2])
 				sys.exit()
+
+			elif validators.email(sys.argv[2]) and '--validate' == sys.argv[3] and len(sys.argv) == 4:
+				if towerdata_api_key == '':
+					print ("[*] TowerData API key don't exist.")
+					sys.exit()
+				else:
+					figlet_print()
+					emailValidator(sys.argv[2], towerdata_api_key)
+					sys.exit()
 			else:
 				menu_bad_execution()
 
@@ -843,19 +881,25 @@ try:
 			if validators.domain(sys.argv[2]):
 
 				if len(sys.argv) == 3:
+
+					figlet_print()
+					
 					# do everything
 					if not shodan_key == '':
 						shodan_search(sys.argv[2], shodan_key)
 
 					crt(sys.argv[2])
 					dnsDump(sys.argv[2])
-					allGoogleHacking(sys.argv[2])
+					dnsZoneTranfers(sys.argv[2])
+					print ("\n-> Google Hacking Resuts\n")
+					allGoogleHacking(sys.argv[2], 3)
 
 
 				elif sys.argv[3] == '-d' and sys.argv[4] == '--all' and len(sys.argv) == 5:
 					# All Dorks
 					figlet_print()
-					allGoogleHacking(sys.argv[2])
+					print ("\n-> Google Hacking Resuts\n")
+					allGoogleHacking(sys.argv[2], 3)
 
 				elif sys.argv[3] == '-d' and sys.argv[5] == '-n' and isinstance(int(sys.argv[6]), int) and len(sys.argv) == 7:
 
@@ -864,27 +908,35 @@ try:
 						sys.exit()
 					elif sys.argv[4] == 'dir_list':
 						figlet_print()
+						print ("\n-> Google Hacking Resuts\n")
 						googleHacking(sys.argv[2], DIR_LIST, int(sys.argv[6]))
 					elif sys.argv[4] == 'files':
 						figlet_print()
+						print ("\n-> Google Hacking Resuts\n")
 						googleHacking(sys.argv[2], FIL, int(sys.argv[6]))
 					elif sys.argv[4] == 'docs':
 						figlet_print()
+						print ("\n-> Google Hacking Resuts\n")
 						googleHacking(sys.argv[2], DOC, int(sys.argv[6]))
 					elif sys.argv[4] == 'db':
 						figlet_print()
+						print ("\n-> Google Hacking Resuts\n")
 						googleHacking(sys.argv[2], DBS, int(sys.argv[6]))
 					elif sys.argv[4] == 'login':
 						figlet_print()
+						print ("\n-> Google Hacking Resuts\n")
 						googleHacking(sys.argv[2], LOGIN, int(sys.argv[6]))
 					elif sys.argv[4] == 'sql':
 						figlet_print()
+						print ("\n-> Google Hacking Resuts\n")
 						googleHacking(sys.argv[2], SQL, int(sys.argv[6]))
 					elif sys.argv[4] == 'sensitive':
 						figlet_print()
+						print ("\n-> Google Hacking Resuts\n")
 						googleHacking(sys.argv[2], SENS, int(sys.argv[6]))
 					elif sys.argv[4] == 'php':
 						figlet_print()
+						print ("\n-> Google Hacking Resuts\n")
 						googleHacking(sys.argv[2], PHP, int(sys.argv[6]))
 					else:
 						print ("[!] Bad dork.")
@@ -905,34 +957,81 @@ try:
 				elif sys.argv[3] == '--dns' and len(sys.argv) == 4:
 					figlet_print()
 					dnsDump(sys.argv[2])
+					dnsZoneTranfers(sys.argv[2])
 
 			elif validators.ip_address.ipv4(sys.argv[2]):
+				
 				if len(sys.argv) == 3:
-					# do everything
+					
+					figlet_print()
 					if not shodan_key == '':
 						shodan_search(sys.argv[2], shodan_key)
 
-					if not (censys_api_id == '' and censys_api_secret == ''):
-						censysSearch(sys.argv[2], censys_api_id, censys_api_secret) 
+					if not (censys_api_id == '' or censys_api_secret == ''):
+						censysSearch(sys.argv[2], censys_api_id, censys_api_secret)
 
-		elif sys.argv[1] == '-u' and sys.argv[3] == '--cms' and len(sys.argv) == 4:
+					knowWhatYouDownload(sys.argv[2])
 
-			if cms_key == '':
-				print ("[*] WhatCMS API key don't exist.")
-				sys.exit()
+				elif sys.argv[3] == '--shodan' and len(sys.argv) == 4:
 
-			elif validators.url('http://' + sys.argv[2]):
+					figlet_print()
+					if not shodan_key == '':
+						shodan_search(sys.argv[2], shodan_key)
+
+				elif sys.argv[3] == '--censys' and len(sys.argv) == 4:
+
+					figlet_print()
+					if not (censys_api_id == '' or censys_api_secret == ''):
+						censysSearch(sys.argv[2], censys_api_id, censys_api_secret)
+					else:
+						print ('[!] Censys API ID or Secret don\'t exist.')
+
+				elif sys.argv[3] == '--torrent' and len(sys.argv) == 4:
+
+					figlet_print()
+					knowWhatYouDownload(sys.argv[2])
+
+				else:
+					menu_bad_execution()
+
+		elif sys.argv[1] == '-u':
+
+			if len(sys.argv) == 3:
+
 				figlet_print()
-				whatCMS(sys.argv[2], cms_key)
-			else:
-				print ('[!] Bad URL. Possible reasons:\n[!] The target URL is mistyped or doesn\'t exist.\n[!] The target URL contains the prefix \'https://\' or \'http://\' - Remove it.')
+				if not cms_key == '':
+					whatCMS(sys.argv[2], cms_key)
 
-		elif sys.argv[1] == '-u' and sys.argv[3] == '--facebook':
-			if validators.url(sys.argv[2]):
-				figlet_print()
-				face(sys.argv[2])
+				extractURLs(sys.argv[2])
+
+			elif sys.argv[3] == '--cms' and len(sys.argv) == 4:
+
+				if cms_key == '':
+					print ("[*] WhatCMS API key don't exist.")
+					sys.exit()
+
+				elif validators.url('http://' + sys.argv[2]):
+					figlet_print()
+					whatCMS(sys.argv[2], cms_key)
+				else:
+					print ('[!] Bad URL. Possible reasons:\n[!] The target URL is mistyped or doesn\'t exist.\n[!] The target URL don\'t contain the prefix \'https://\' or \'http://\' - Add it.')
+				
+			elif sys.argv[3] == '--facebook' and len(sys.argv) == 4:
+				if validators.url(sys.argv[2]):
+					figlet_print()
+					face(sys.argv[2])
+				else:
+					print ('[!] Bad URL. Possible reasons:\n[!] The target URL is mistyped or doesn\'t exist.\n[!] The target URL don\'t contain the prefix \'https://\' or \'http://\' - Add it.')
+				
+
+			elif sys.argv[3] == '--extract' and len(sys.argv) == 4:
+				if validators.url(sys.argv[2]):
+					figlet_print()
+					extractURLs(sys.argv[2])
+				else:
+					print ('[!] Bad URL. Possible reasons:\n[!] The target URL is mistyped or doesn\'t exist.\n[!] The target URL don\'t contain the prefix \'https://\' or \'http://\' - Add it.')
 			else:
-				print ('[!] Bad URL. Possible reasons:\n[!] The target URL is mistyped or doesn\'t exist.\n[!] The target URL don\'t contain the prefix \'https://\' or \'http://\' - Add it.')
+				menu_bad_execution()
 			
 		else:
 			menu_bad_execution()
