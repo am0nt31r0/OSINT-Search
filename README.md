@@ -15,10 +15,14 @@
 - Presents which country a phone number belongs to.
 - Presents results of google hackings searches.
 - Presents results related to a domain or an IP address.
-- Presents CMS for a certain website.
-- Presents DNS Records information for a certain domain.
-- Presents Facebook ID and a facebook page full of photos after getting a facebook profile URL.
 - Presents digital certificates for a certain domain.
+- Presents CMS for a certain website.
+- Presents DNS Records and zone transfers information for a certain domain.
+- Presents Facebook ID and a facebook page full of photos after getting a facebook profile URL.
+- Presents URLs present in some web page.
+- Presents URL to know what torrents are being downloaded from some IP.
+
+
 
 The script allows specfic searches and in bulk.
 
@@ -64,16 +68,17 @@ $ osintS34rCh v1.0
 
 USAGES
   Email
-  ./osintS34rCh -e <target@email>				# All Searches: Pipl, FullContact, Haveibeenpwnded Data Breaches and Credentials Pastes
+  ./osintS34rCh -e <target@email>				# All Searches: Pipl, FullContact, Haveibeenpwnded Data Breaches and Credentials Pastes, TowerData - validate e-mail
   ./osintS34rCh -e <target@email> --pipl 			# Pipl
   ./osintS34rCh -e <target@email> --fullcontact 		# FullContact
   ./osintS34rCh -e <target@email> --pwned 			# Haveibeenpwnded Data Breaches and Credentials Pastes
+  ./osintS34rCh -e <target@email> --validate			# TowerData - validate e-mail
 
   Domain
-  ./osintS34rCh.py -t <domain>					# All Searches: Shodan Recon, crt.sh, DNSDumpster, All Google Hacking Dorks
+  ./osintS34rCh.py -t <domain>					# All Searches: Shodan Recon, crt.sh, DNSDumpster, All Google Hacking Dorks, HackerTarget - DNS Zonetransfer
   ./osintS34rCh.py -t <domain> --shodan				# Shodan Recon
   ./osintS34rCh.py -t <domain> --crt 				# crt.sh
-  ./osintS34rCh.py -t <domain> --dns 				# DNSDumpster
+  ./osintS34rCh.py -t <domain> --dns 				# DNSDumpster, HackerTarget - DNS Zonetransfer
   ./osintS34rCh.py -t <domain> -d <dork> -n <num_pages>		# Google Hacking
   ./osintS34rCh.py -t <domain> -d --all				# All Google Hacking Dorks
 
@@ -81,10 +86,12 @@ USAGES
   ./osintS34rCh.py -t <IP>					# All Searchs: Shodan and Censys Recon
   ./osintS34rCh.py -t <IP> --shodan				# Shodan Recon
   ./osintS34rCh.py -t <IP> --censys				# Censys Recon
+  ./osintS34rCh.py -t <IP> --torrent				# KnowWhatYouDownload URL
 
   URL
-  ./osintS34rCh.py -u <url> --censys				# Censys Recon
+  ./osintS34rCh.py -u <url>					# WhatCMS Check, HackerTarget - Extract URLs
   ./osintS34rCh.py -u <url> --cms				# WhatCMS Check
+  ./osintS34rCh.py -u <url> --extract				# HackerTarget - Extract URLs
   ./osintS34rCh.py -u <url> --facebook 				# Facebook
 
   Phone
