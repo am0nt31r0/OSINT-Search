@@ -7,3 +7,4 @@ shodan
 phonenumbers
 fullcontact.py
 censys
+requests
