@@ -6,6 +6,7 @@
 - Create an account at https://whatcms.org/API and get the WhatCMS API key.
 - Create an account at https://censys.io/register and get the API ID and API secret.
 - Create an account at https://dashboard.fullcontact.com/consents and get the FullContact API key.
+- Create an account at https://www.towerdata.com/email-validation ang get the TowerData API key.
 
 # Functionality
 
@@ -18,11 +19,9 @@
 - Presents digital certificates for a certain domain.
 - Presents CMS for a certain website.
 - Presents DNS Records and zone transfers information for a certain domain.
-- Presents Facebook ID and a facebook page full of photos after getting a facebook profile URL.
+- Presents URL links that contain valuable data related with a Facebook ID.
 - Presents URLs present in some web page.
-- Presents URL to know what torrents are being downloaded from some IP.
-
-
+- Presents URL that tells what torrents are being downloaded from some IP.
 
 The script allows specfic searches and in bulk.
 
