@@ -112,7 +112,7 @@ def apiFile():
 	global censys_api_secret
 	global towerdata_api_key
 
-	pwd = os.path.dirname(sys.argv[0])
+	pwd = os.path.dirname(os.path.realpath(__file__))
 	filename = pwd + '/osintSearch.config.ini'
 
 	config = configparser.ConfigParser()
