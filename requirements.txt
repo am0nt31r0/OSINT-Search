@@ -6,5 +6,5 @@ validators
 shodan
 phonenumbers
 fullcontact.py
-censys
+censys==0.0.8
 requests
